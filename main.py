@@ -2,8 +2,8 @@ import fastapi, uvicorn, aiohttp, bs4
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
 import re
-
 from smart_lab_api import SmartLabAPI, dataclass_types
+
 
 app = fastapi.FastAPI()
 
@@ -73,7 +73,3 @@ async def get_url(period: str = None, ticker: str = None):
     total_data = api.get_data(ticker=ticker, period=period)
 
     return JSONResponse(content={"ok": True, "data": to_json(total_data)}, media_type="application/json", status_code=200)
-
-
-if __name__ == "__main__":
-    uvicorn.run("main:app", host="localhost", port=8000, log_level="info")
