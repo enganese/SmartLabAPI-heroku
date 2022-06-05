@@ -1,0 +1,5 @@
+fastapi
+uvicorn
+aiohttp
+bs4
+requests
