@@ -10,7 +10,7 @@
 # print(f"{result.roe.aliases[0]}:", result.roe.values)
 
 # print(f"{result.net_margin.aliases[0]}:", result.net_margin.values)
-# print(f"{result.p_bv.aliases[0]}:", result.p_bv.values)
+# print(f"{result.p_b_v.aliases[0]}:", result.p_b_v.values)
 
 # print(f"{result.revenue.aliases[0]}:", result.revenue.values)
 # print(f"{result.dividend.aliases[0]}:", result.dividend.values)

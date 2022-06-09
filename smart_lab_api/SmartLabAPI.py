@@ -10,7 +10,7 @@ from .dataclass_types import *
 class SmartLabAPI:
     """
     SmartLab API
-    Version: 0.1.0-beta
+    Version: 0.1.1-release
     """
 
     def __init__(self):
@@ -1832,6 +1832,32 @@ class SmartLabAPI:
             )
             return None
 
+    def get_companies_names(self):
+        """
+        **Examples:**
+        >>> api = SmartLabAPI()         # Create instance of SmartLabAPI
+        >>> api.get_companies_names()     # To get all company names from smart-lab.ru
 
-api = SmartLabAPI()
-total_data = api.get_data(ticker="ROSN", period="year")
+        **Returns:**
+        :return: list
+        """
+
+        url = 'https://smart-lab.ru/q/shares/'
+
+        resp = requests.get(url).text
+        soup = BeautifulSoup(resp, "lxml")
+
+        all_companies = soup.find_all("tr", attrs={'class': None})
+        tds = []
+
+        for company in all_companies[1:]:
+            temp_tds = company.find_all("td")
+
+            tds.append(
+                [temp_tds[2].get_text(), temp_tds[3].get_text()]
+            )
+
+        if tds is None or len(tds) == 0:
+            return None
+
+        return tds

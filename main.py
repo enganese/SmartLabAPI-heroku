@@ -1,23 +1,11 @@
 import fastapi, uvicorn, aiohttp, bs4
-from fastapi import FastAPI, Request, Response
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse, RedirectResponse
 import re
 from smart_lab_api import SmartLabAPI, dataclass_types
-from fastapi.middleware.cors import CORSMiddleware
 
 
-app = FastAPI()
-
-origins = ["*"]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
+app = fastapi.FastAPI()
 
 
 def camel_to_snake(text):
@@ -61,23 +49,30 @@ def to_json(total_data, debug: bool = True) -> dict | None:
         return None
 
 
+@app.exception_handler(404)
+async def custom_404_handler(_, __):
+    return RedirectResponse("/docs")
+
+
 @app.get("/{ticker}/{period}")
 async def get_url(period: str = None, ticker: str = None):
     if period is None or period not in ["year", "y", "quarter", "q"]:
-        return Response(
+        return JSONResponse(
             content={
                 "ok": False,
                 "message": "You need to pass an period to get full information",
             },
+            media_type="application/json",
             status_code=400,
         )
 
     if ticker is None:
-        return Response(
+        return JSONResponse(
             content={
                 "ok": False,
                 "message": "You need to pass a company ticker to get full information",
             },
+            media_type="application/json",
             status_code=400,
         )
 
@@ -85,3 +80,24 @@ async def get_url(period: str = None, ticker: str = None):
     total_data = api.get_data(ticker=ticker, period=period)
 
     return JSONResponse(content={"ok": True, "data": to_json(total_data)}, media_type="application/json", status_code=200)
+
+
+@app.get("/get_companies")
+async def get_companies():
+    try:
+        api = SmartLabAPI.SmartLabAPI()
+        list_of_companies = api.get_companies_names()
+        
+        return JSONResponse(content={"ok": True, "data": list_of_companies}, media_type="application/json", status_code=200)
+    except Exception as e:
+        return JSONResponse(
+            content={
+                "ok": False,
+                "message": "If function returned absolutely empty list, then it means that there is no data or something went wrong on server's side. Please, try again later.",
+            },
+            media_type="application/json",
+            status_code=400,)
+
+
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="localhost", port=8000, log_level="info")
