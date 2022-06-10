@@ -99,5 +99,24 @@ async def get_companies():
             status_code=400,)
 
 
+@app.get("/autocomplete")
+async def get_auto_complete_values(value: str = None):
+    try:
+        if value is None or value == "":
+            return JSONResponse(
+                content={
+                    "ok": False,
+                    "message": "You need to pass a value(as a GET query) to get autocomplete values. Example: https://smartlab.herokuapp.com/autocomplete?value=Microso",
+                },
+                media_type="application/json",
+                status_code=400,
+            )
+        api = SmartLabAPI.SmartLabAPI()
+        auto_complete_values = api.get_auto_complete_values(value=value)
+        return JSONResponse(content={"ok": True, "data": auto_complete_values}, media_type="application/json", status_code=200)
+    except Exception as e:
+        return JSONResponse(content={"ok": False, message: "Server side error(exception was handled). Try again later, please."}, media_type="application/json", status_code=500)
+
+
 if __name__ == "__main__":
     uvicorn.run("main:app", host="localhost", port=8000, log_level="info")

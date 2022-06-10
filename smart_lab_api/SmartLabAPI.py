@@ -1861,3 +1861,10 @@ class SmartLabAPI:
             return None
 
         return tds
+
+    def get_auto_complete_values(self, value):
+        try:
+            resp = requests.get(f"https://smart-lab.ru/forum/ajaxsearchticker/?reports=1&value={value}").json()
+            return resp
+        except Exception as e:
+            return None
