@@ -123,14 +123,12 @@ async def get_auto_complete_values(direct_info: bool, value: str = None):
         
         api = SmartLabAPI.SmartLabAPI()
         auto_complete_values = api.get_auto_complete_values(value=value)
-        print(auto_complete_values)
-
+        
         if direct_info:
             return auto_complete_values['results']
         else:
             return JSONResponse(content={"ok": True, "data": auto_complete_values}, media_type="application/json", status_code=200)
     except Exception as e:
-        print(e)
         return JSONResponse(content={"ok": False, "message": "Server side error(exception was handled). Try again later, please."}, media_type="application/json", status_code=500)
 
 
