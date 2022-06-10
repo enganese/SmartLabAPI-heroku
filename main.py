@@ -3,9 +3,18 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 import re
 from smart_lab_api import SmartLabAPI, dataclass_types
+from fastapi.middleware.cors import CORSMiddleware
 
 
 app = fastapi.FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 def camel_to_snake(text):
