@@ -88,7 +88,7 @@ async def get_url(period: str = None, ticker: str = None):
     api = SmartLabAPI.SmartLabAPI()
     total_data = api.get_data(ticker=ticker, period=period)
 
-    return JSONResponse(content={"ok": True, "data": to_json(total_data)}, media_type="application/json", status_code=200)
+    return JSONResponse(content={"ok": True, "ticker": ticker, "period": period, "data": to_json(total_data)}, media_type="application/json", status_code=200)
 
 
 @app.get("/get_companies")
