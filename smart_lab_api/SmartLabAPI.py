@@ -1230,7 +1230,7 @@ class SmartLabAPI:
             return None
 
         if period == "year" or period == "y":
-            url = f"https://smart-lab.ru/q/{ticker}/f/y/MSFO/"
+            url = f"https://smart-lab.ru/q/{ticker}/f/y/"
 
             # Initialize the BeautifulSoup object
             try:
@@ -1530,7 +1530,7 @@ class SmartLabAPI:
             return total_data
 
         elif period == "quarter" or period == "q":
-            url = f"https://smart-lab.ru/q/{ticker}/f/q/MSFO/"
+            url = f"https://smart-lab.ru/q/{ticker}/f/q/"
 
             # Initialize the BeautifulSoup object
             try:
