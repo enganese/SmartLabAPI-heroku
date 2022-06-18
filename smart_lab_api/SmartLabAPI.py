@@ -38,11 +38,13 @@ class SmartLabAPI:
             for td in td_rows:
                 text = Tools.normalize_text(td.get_text())
 
+                print("year:", text.split()[0])
                 years.append(text.split()[0])
 
             return years
 
         except Exception as e:
+            print("year error:", e)
             return []
 
     def get_currency(self):
@@ -983,7 +985,26 @@ class SmartLabAPI:
 
             return p_bv
         except Exception as e:
-            return []
+            print("trying p/b")
+            try:
+                # Get p_bv
+                p_b = []
+
+                soup = self.parser
+
+                tr_rows = soup.find("tr", attrs={"field": "p_b"})
+
+                for tr in tr_rows:
+                    text = Tools.normalize_text(tr.get_text())
+
+                    p_b.append(text) if len(
+                        text
+                    ) <= 10 and text != "" and "P/B" not in text or text == "Недоступно / Not available" else None
+
+                return p_bv
+            except Exception as e:
+                print("error:", e)
+                return []
 
     def get_ev_ebitda(self):
         try:
