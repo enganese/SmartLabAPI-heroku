@@ -12,7 +12,7 @@ class Tools:
 
     def normalize_text(text: str) -> str | None:
         try:
-            text = text.replace("\t", "").replace("\n", "").replace("\xa0", "")
+            text = text.replace("\t", "").replace("\n", "").replace("\xa0", "").replace("%", "")
             if len(text) == 1:
                 return text.replace(" ", "Недоступно / Not available").replace("?", "")
             else:
@@ -22,7 +22,7 @@ class Tools:
 
     def normalize_text_2(text: str) -> str | None:
         try:
-            text = str(text).replace("\t", "").replace("\n", " || ").replace("\xa0", "")
+            text = str(text).replace("\t", "").replace("\n", " || ").replace("\xa0", "").replace("%", "")
             return text
         except:
             return None
