@@ -136,7 +136,7 @@ async def get_url(period: str = None, ticker: str = None, full_info: bool = Fals
                 "ok": True,
                 "ticker": ticker,
                 "period": period,
-                "data": to_json2(total_data),
+                "data": to_json2(total_data, debug=True),
             },
             media_type="application/json",
             status_code=200,

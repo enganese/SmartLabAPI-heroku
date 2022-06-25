@@ -16,8 +16,8 @@ class FullInfo:
 class FullData:
     name: str | None
     title: str | None
-    categories: List[int]
-    data: List[dict]
+    categories: List[int] | list
+    data: List[dict] | list
 
 
 @dataclass

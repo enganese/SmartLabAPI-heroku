@@ -44,8 +44,7 @@ class SmartLabAdvancedAPI:
             return None
 
         resp = (grequests.get(u) for u in url)
-        response = grequests.map(resp, exception_handler=handler)
-        print("response in full info:", response)
+        response = grequests.map(resp)
 
         resp = response[0].text
         soup = bs4.BeautifulSoup(resp, "lxml")
@@ -90,22 +89,16 @@ class SmartLabAdvancedAPI:
 
     @classmethod
     def get_full_data_year(cls, full_info: List[FullInfo] = None) -> List[FullData]:
-        print("starting to get full data for year")
         if full_info is None:
             return None
 
         if isinstance(full_info, list):
             full_data = []
 
-            rs = (grequests.get(info.url, stream=True) for info in full_info)
-            responses = grequests.imap(rs)
-
-            urls = []
+            rs = (grequests.get(info.url) for info in full_info)
+            responses = grequests.map(rs)
 
             for response in responses:
-                # response.raw.chunked = True
-                print("parsing", response.url)
-                urls.append(response.url)
                 
                 soup = bs4.BeautifulSoup(response.text, "lxml")
 
@@ -130,15 +123,17 @@ class SmartLabAdvancedAPI:
                     splitted_texts = response.url.split("/")
                     name = splitted_texts[-2]
 
-                    full_data.append(
-                        FullData(
+                    data = FullData(
                             name=name,
                             title=title,
                             categories=json_dict["diagram"]["categories"],
                             data=json_dict["diagram"]["data"],
                         )
+
+                    full_data.append(
+                        data
                     )
-                    print("parsed")
+                    print("Data year:", data.name, data.title)
                 except Exception as e:
                     print("ERROR:", e)
 
@@ -158,7 +153,7 @@ class SmartLabAdvancedAPI:
 
             # print("Length of all links:", len(full_info))
             # print("Length of all data:", len(full_data))
-            print(urls)
+            
             return full_data
 
         else:
@@ -170,7 +165,8 @@ class SmartLabAdvancedAPI:
             full_data = []
 
             rs = (grequests.get(info.url) for info in full_info)
-            responses = grequests.imap(rs, size=1)
+            
+            responses = grequests.map(rs)
 
             for response in responses:
                 soup = bs4.BeautifulSoup(response.text, "lxml")
@@ -186,7 +182,7 @@ class SmartLabAdvancedAPI:
                     .replace("'", '"')
                     + '{point.comment}"}}'
                 )
-
+                
                 try:
                     json_dict = json.loads(str_data)
 
@@ -196,14 +192,17 @@ class SmartLabAdvancedAPI:
                     splitted_texts = response.url.split("/")
                     name = splitted_texts[-2]
 
-                    full_data.append(
-                        FullData(
+                    data = FullData(
                             name=name,
                             title=title,
                             categories=json_dict["diagram"]["categories"],
-                            data=json_dict["diagram"]["data"],
+                            data=json_dict["diagram"]["data"]
                         )
+
+                    full_data.append(
+                        data
                     )
+                    print("Data quarter:", data.name, data.title)
                 except Exception as e:
                     print("ERROR:", e)
 
@@ -214,17 +213,18 @@ class SmartLabAdvancedAPI:
                     name = splitted_texts[-2]
 
                     full_data.append(
-                        FullData(tname=name, title=title, categories=[], data=[])
+                        FullData(name=name, title=title, categories=[], data=[])
                     )
 
                     # print("Data:", str_data)
                     # print("URL:", response.text)
                     continue
 
-                # print("Length of all links:", len(full_info))
-                # print("Length of all data:", len(full_data))
+            # print("Length of all links:", len(full_info))
+            # print("Length of all data:", len(full_data))
 
-                return full_data
+            print(full_data)
+            return full_data
         else:
             return []
 
@@ -240,6 +240,7 @@ class SmartLabAdvancedAPI:
 
         elif period in ["quarter", "q", "qurater"]:
             full_info_quarter = cls.get_full_info("quarter", ticker)
+            print("full_info_quarter:", full_info_quarter)
             full_data_quarter = cls.get_full_data_quarter(full_info_quarter)
             return full_data_quarter
 
