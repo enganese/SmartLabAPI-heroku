@@ -3,6 +3,7 @@ uvicorn
 gunicorn
 aiohttp
 bs4
+grequests
 requests
 lxml
 gevent
