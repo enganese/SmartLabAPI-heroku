@@ -1,5 +1,23 @@
 from dataclasses import dataclass
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
+
+
+@dataclass
+class FullInfo:
+    ticker: str
+    data_type: Optional[str]
+    title: str
+    text: str
+    url: str
+    href: str
+
+
+@dataclass
+class FullData:
+    name: str | None
+    title: str | None
+    categories: List[int]
+    data: List[dict]
 
 
 @dataclass

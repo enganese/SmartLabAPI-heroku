@@ -1,16 +1,256 @@
+from gevent import monkey
+
+
+def stub(*args, **kwargs):  # pylint: disable=unused-argument
+    pass
+
+
+monkey.patch_all = stub
+
+import grequests
 import requests, json
+import bs4
 from bs4 import BeautifulSoup
 from typing import List, Dict, Any
+from lxml.html import fromstring
 
 from .tools import Tools
 from . import dataclass_types
 from .dataclass_types import *
 
 
+def handler(err, e):
+    print("Handler:", err, e)
+
+
+class SmartLabAdvancedAPI:
+    @classmethod
+    def get_full_info(cls, period: str = None, ticker: str = None) -> List[FullInfo]:
+        if ticker is None or period is None:
+            return None
+
+        url = None
+
+        if period in ["year", "y", "yaer"]:
+            url = [f"https://smart-lab.ru/q/{ticker}/f/y/"]
+
+        if period in ["quarter", "q", "qurater"]:
+            url = [f"https://smart-lab.ru/q/{ticker}/f/q/"]
+
+        if url is None:
+            print(
+                f"Period '{period}' is incorrect. Please, make sure period is either 'year' or 'quarter'. \nAlso, you can specify only first letter of periods. \ne.g: 'y' - for 'year', 'q' - for 'quarter'."
+            )
+            return None
+
+        resp = (grequests.get(u) for u in url)
+        response = grequests.map(resp, exception_handler=handler)
+        print("response in full info:", response)
+
+        resp = response[0].text
+        soup = bs4.BeautifulSoup(resp, "lxml")
+
+        all_links = soup.find_all("a", attrs={"target": "_blank"})
+        all_a = []
+
+        for link in all_links[1:]:
+            text = link.get_text()
+            href = link.get("href")
+            url = "https://smart-lab.ru" + href
+
+            if (
+                href.startswith("/q/")
+                and "MSFO" in href
+                and not "/y/" in href
+                and not "/f/" in href
+                or href.startswith("/q/")
+                and "GAAP" in href
+                and not "/y/" in href
+                and not "/f/" in href
+            ):
+                title = href.split("/")[-2]
+                data_type = href.split("/")[-3]
+                ticker = href.split("/")[-4]
+
+                data = FullInfo(
+                    ticker=ticker,
+                    data_type=data_type,
+                    title=title,
+                    text=text,
+                    url=url,
+                    href=href,
+                )
+
+                all_a.append(data)
+
+        if all_a is None or len(all_a) == 0:
+            return []
+
+        return all_a
+
+    @classmethod
+    def get_full_data_year(cls, full_info: List[FullInfo] = None) -> List[FullData]:
+        print("starting to get full data for year")
+        if full_info is None:
+            return None
+
+        if isinstance(full_info, list):
+            full_data = []
+
+            rs = (grequests.get(info.url, stream=True) for info in full_info)
+            responses = grequests.imap(rs)
+
+            urls = []
+
+            for response in responses:
+                # response.raw.chunked = True
+                print("parsing", response.url)
+                urls.append(response.url)
+                
+                soup = bs4.BeautifulSoup(response.text, "lxml")
+
+                all_scripts = soup.find_all("script", attrs={"type": "text/javascript"})
+
+                str_dict = (
+                    str(all_scripts[18].string)
+                    .split('{point.comment}"},')[0]
+                    .replace("var aYearData = ", "")
+                    .replace("\t", "")
+                    .replace("\n", "")
+                    .replace("'", '"')
+                    + '{point.comment}"}}'
+                )
+
+                try:
+                    json_dict = json.loads(str_dict)
+
+                    tree = fromstring(response.content)
+                    title = tree.findtext(".//title")
+
+                    splitted_texts = response.url.split("/")
+                    name = splitted_texts[-2]
+
+                    full_data.append(
+                        FullData(
+                            name=name,
+                            title=title,
+                            categories=json_dict["diagram"]["categories"],
+                            data=json_dict["diagram"]["data"],
+                        )
+                    )
+                    print("parsed")
+                except Exception as e:
+                    print("ERROR:", e)
+
+                    tree = fromstring(response.content)
+                    title = tree.findtext(".//title")
+
+                    splitted_texts = response.url.split("/")
+                    name = splitted_texts[-2]
+
+                    full_data.append(
+                        FullData(name=name, title=title, categories=[], data=[])
+                    )
+
+                    # print("Data:", str_data)
+                    # print("URL:", response.text)
+                    continue
+
+            # print("Length of all links:", len(full_info))
+            # print("Length of all data:", len(full_data))
+            print(urls)
+            return full_data
+
+        else:
+            return []
+
+    @classmethod
+    def get_full_data_quarter(cls, full_info: List[FullInfo]) -> List[FullData]:
+        if isinstance(full_info, list):
+            full_data = []
+
+            rs = (grequests.get(info.url) for info in full_info)
+            responses = grequests.imap(rs, size=1)
+
+            for response in responses:
+                soup = bs4.BeautifulSoup(response.text, "lxml")
+
+                all_scripts = soup.find_all("script", attrs={"type": "text/javascript"})
+
+                str_data = (
+                    str(all_scripts[18].string)
+                    .split('{point.comment}"},')[1]
+                    .split("var aQuarterData = ")[1]
+                    .replace("\t", "")
+                    .replace("\n", "")
+                    .replace("'", '"')
+                    + '{point.comment}"}}'
+                )
+
+                try:
+                    json_dict = json.loads(str_data)
+
+                    tree = fromstring(response.content)
+                    title = tree.findtext(".//title")
+
+                    splitted_texts = response.url.split("/")
+                    name = splitted_texts[-2]
+
+                    full_data.append(
+                        FullData(
+                            name=name,
+                            title=title,
+                            categories=json_dict["diagram"]["categories"],
+                            data=json_dict["diagram"]["data"],
+                        )
+                    )
+                except Exception as e:
+                    print("ERROR:", e)
+
+                    tree = fromstring(response.content)
+                    title = tree.findtext(".//title")
+
+                    splitted_texts = response.url.split("/")
+                    name = splitted_texts[-2]
+
+                    full_data.append(
+                        FullData(tname=name, title=title, categories=[], data=[])
+                    )
+
+                    # print("Data:", str_data)
+                    # print("URL:", response.text)
+                    continue
+
+                # print("Length of all links:", len(full_info))
+                # print("Length of all data:", len(full_data))
+
+                return full_data
+        else:
+            return []
+
+    @classmethod
+    def get_full_data_for_period(cls, period: str = None, ticker: str = None):
+        if ticker is None or period is None:
+            return None
+
+        if period in ["year", "y", "yaer"]:
+            full_info_year = cls.get_full_info("year", ticker)
+            full_data_year = cls.get_full_data_year(full_info_year)
+            return full_data_year
+
+        elif period in ["quarter", "q", "qurater"]:
+            full_info_quarter = get_full_info("quarter", ticker)
+            full_data_quarter = get_full_data_quarter(full_info_quarter)
+            return full_data_quarter
+
+        else:
+            return None
+
+
 class SmartLabAPI:
     """
     SmartLab API
-    Version: 0.1.1-release
+    Version: 0.1.1-release(not full)
     """
 
     def __init__(self):
@@ -1244,614 +1484,324 @@ class SmartLabAPI:
 
         self.ticker = ticker
 
-        if period is None or period not in ["year", "quarter", "y", "q"]:
+        if period is None or period not in [
+            "year",
+            "quarter",
+            "y",
+            "q",
+            "yaer",
+            "qurater",
+        ]:
             print(
                 "Unexpected object was passed as a 'period', 'year' or 'quarter' must be passed instead. \nNeed a help? More: https://en.wikipedia.org/wiki/Calendar_year"
             )
             return None
 
-        if period == "year" or period == "y":
+        url = None
+
+        if period in ["year", "y", "yaer"]:
             url = f"https://smart-lab.ru/q/{ticker}/f/y/"
 
-            # Initialize the BeautifulSoup object
-            try:
-                print("INFO:", "Using lxml for parsing")
-                self.parser = BeautifulSoup(requests.get(url).text, "lxml")
-
-            except ImportError as e:
-                print("WARNING: Using html.parser instead")
-                self.parser = BeautifulSoup(requests.get(url).text, "html.parser")
-
-            # Assign the instant to a variable
-            soup = self.parser
-
-            # Get years
-            years = self.get_years()
-
-            # Get debt_ebitda
-            debt_ebitda = self.get_debt_ebitda()
-
-            # Get currency
-            currency = self.get_currency()
-
-            # Get report_url
-            report_url = self.get_report_url()
-
-            # Get year_report_url
-            year_report_url = self.get_year_report_url()
-
-            # Get presentation_url
-            presentation_url = self.get_presentation_url()
-
-            # Get oil_production
-            oil_production = self.get_oil_production()
-
-            # Get oil_refining
-            oil_refining = self.get_oil_refining()
-
-            # Get gas_production
-            gas_production = self.get_gas_production()
-
-            # Get revenue
-            revenue = self.get_revenue()
-
-            # Get operating_income
-            operating_income = self.get_operating_income()
-
-            # Get ebitda
-            ebitda = self.get_ebitda()
-
-            # Get net_income
-            net_income = self.get_net_income()
-
-            # Get net_income_ns
-            net_income_ns = self.get_net_income_ns()
-
-            # Get ocf
-            ocf = self.get_ocf()
-
-            # Get capex
-            capex = self.get_capex()
-
-            # Get fcf
-            fcf = self.get_fcf()
-
-            # Get dividend_payout
-            dividend_payout = self.get_dividend_payout()
-
-            # Get dividend
-            dividend = self.get_dividend()
-
-            # Get div_yield
-            div_yield = self.get_div_yield()
-
-            # Get div_payout_ratio
-            div_payout_ratio = self.get_div_payout_ratio()
-
-            # Get opex
-            opex = self.get_opex()
-
-            # Get cost_of_production
-            cost_of_production = self.get_cost_of_production()
-
-            # Get r_and_d
-            r_and_d = self.get_r_and_d()
-
-            # Get employment_expenses
-            employment_expenses = self.get_employment_expenses()
-
-            # Get interest_expenses
-            interest_expenses = self.get_interest_expenses()
-
-            # Get assets
-            assets = self.get_assets()
-
-            # Get net_assets
-            net_assets = self.get_net_assets()
-
-            # Get debt
-            debt = self.get_debt()
-
-            # Get cash
-            cash = self.get_cash()
-
-            # Get net_debt
-            net_debt = self.get_net_debt()
-
-            # Get common_share
-            common_share = self.get_common_share()
-
-            # Get number_of_shares
-            number_of_shares = self.get_number_of_shares()
-
-            # Get free_float
-            free_float = self.get_free_float()
-
-            # Get market_cap
-            market_cap = self.get_market_cap()
-
-            # Get ev
-            ev = self.get_ev()
-
-            # Get book_value
-            book_value = self.get_book_value()
-
-            # Get eps
-            eps = self.get_eps()
-
-            # Get fcf_share
-            fcf_share = self.get_fcf_share()
-
-            # Get bv_share
-            bv_share = self.get_bv_share()
-
-            # Get ebitda_margin
-            ebitda_margin = self.get_ebitda_margin()
-
-            # Get net_margin
-            net_margin = self.get_net_margin()
-
-            # Get fcf_yield
-            fcf_yield = self.get_fcf_yield()
-
-            # Get roe
-            roe = self.get_roe()
-
-            # Get roa
-            roa = self.get_roa()
-
-            # Get p_e
-            p_e = self.get_p_e()
-
-            # Get p_s
-            p_s = self.get_p_s()
-
-            # Get p_bv
-            p_bv = self.get_p_bv()
-
-            # Get ev_ebitda
-            ev_ebitda = self.get_ev_ebitda()
-
-            # Get debt_ebitda
-            debt_ebitda = self.get_debt_ebitda()
-
-            # Get employees
-            employees = self.get_employees()
-
-            # Get labour_productivity
-            labour_productivity = self.get_labour_productivity()
-
-            # Get expenses_per_employee
-            expenses_per_employee = self.get_expenses_per_employee()
-
-            # Get r_and_d_capex
-            r_and_d_capex = self.get_r_and_d_capex()
-
-            # Get capex_revenue
-            capex_revenue = self.get_capex_revenue()
-
-            # Get irr
-            irr = self.get_irr()
-
-            # Get share_holders
-            share_holders = self.get_share_holders()
-
-            total_data = TotalData(
-                Years(years, ["Периоды", "Время", "Года", "Periods", "Dates", "Years"]),
-                Currency(currency, ["Валюта", "Currency"]),
-                ReportUrl(
-                    report_url, ["Финансовый отчет", "Financial report", "report url"]
-                ),
-                YearReportUrl(
-                    year_report_url,
-                    [
-                        "Годовой отчет",
-                        "Годовой финансовый отчет",
-                        "Year report url",
-                        "Year financial report",
-                        "Year financial report url",
-                    ],
-                ),
-                PresentationUrl(
-                    presentation_url,
-                    ["Презентация", "Presentation", "presentation url"],
-                ),
-                OilProduction(oil_production, ["Добыча нефти", "Oil production"]),
-                OilRefining(oil_refining, ["Переработка нефти", "Oil refining"]),
-                GasProduction(gas_production, ["Добыча газа", "Gas production"]),
-                Revenue(revenue, ["Выручка", "Доходы", "Revenue"]),
-                OperatingIncome(
-                    operating_income, ["Операционная прибыль", "Operating Income"]
-                ),
-                Ebitda(ebitda, ["ebitda", "Ebitda", "EBITDA"]),
-                NetIncome(net_income, ["Чистая прибыль", "Net Income"]),
-                NetIncomeNS(net_income_ns, ["Чистая прибыль н/с", "Net Income N/S"]),
-                Ocf(ocf, ["Операционный денежный поток", "Operating Cash Flow (OCF)"]),
-                Capex(
-                    capex,
-                    [
-                        "Сумма операционных расходов",
-                        "capex",
-                        "Capital expenditure (Capex)",
-                    ],
-                ),
-                Fcf(fcf, ["Свободный денежный поток (FCF)", "Free Cash Flow (FCF)"]),
-                DividendPayout(
-                    dividend_payout,
-                    ["Див. выплата", "Выплата дивидендов", "Dividend Payout"],
-                ),
-                Dividend(dividend, ["Дивиденд", "Dividend"]),
-                DivYield(div_yield, ["Див. доход, ао", "Dividend yield"]),
-                DivPayoutRatio(
-                    div_payout_ratio,
-                    ["Дивиденды/прибыль", "Div Payout Ratio", "Dividend/Payout ratio"],
-                ),
-                Opex(opex, ["Опер. расходы", "Operational expenditure", "Opex"]),
-                CostOfProduction(
-                    cost_of_production, ["Себестоимость", "Cost of production"]
-                ),
-                RandD(r_and_d, ["НИОКР", "research and development", "R&D"]),
-                EmploymentExpenses(
-                    employment_expenses, ["Расход на персонал", "Employment expenses"]
-                ),
-                InterestExpenses(
-                    interest_expenses, ["Процентные расходы", "Interest expenses"]
-                ),
-                Assets(assets, ["Активы", "Assets"]),
-                NetAssets(net_assets, ["Чистые активы", "Net assets"]),
-                Debt(debt, ["Долг", "Debt"]),
-                Cash(cash, ["Наличность", "Cash"]),
-                NetDebt(net_debt, ["Чистый долг", "Net debt"]),
-                CommonShare(common_share, ["Цена акции ао", "Common share"]),
-                NumberOfShares(
-                    number_of_shares, ["Число акций ао", "Number of shares"]
-                ),
-                FreeFloat(free_float, ["Free Float"]),
-                MarketCap(market_cap, ["Капитализация", "Market cap"]),
-                EV(ev, ["EV"]),
-                BookValue(book_value, ["Баланс стоимость", "Book value"]),
-                Eps(eps, ["EPS"]),
-                FcfShare(fcf_share, ["FCF/акцию", "FCF/share"]),
-                BvShare(bv_share, ["BV/акцию", "BV/share"]),
-                EbitdaMargin(ebitda_margin, ["Рентаб. EBITDA", "Ebitda margin"]),
-                NetMargin(net_margin, ["Чистая рентаб.", "Net margin"]),
-                FcfYield(fcf_yield, ["Доходность FCF", "FCF yield"]),
-                Roe(roe, ["ROE"]),
-                Roa(roa, ["ROA"]),
-                PE(p_e, ["P/E"]),
-                PS(p_s, ["P/S"]),
-                PBV(p_bv, ["P/BV"]),
-                EvEbitda(ev_ebitda, ["EV/EBITDA"]),
-                DebtEbitda(debt_ebitda, ["Долг/EBITDA", "Debt/EBITDA"]),
-                Employees(employees, ["Персонал", "Employees"]),
-                LabourProductivity(
-                    labour_productivity,
-                    ["Производительность труда", "Labour productivity"],
-                ),
-                ExpensesPerEmployee(
-                    expenses_per_employee, ["Расходы/чел/год", "Expenses per employee"]
-                ),
-                RDcapex(r_and_d_capex, ["R&D/Capex"]),
-                CapexRevenue(capex_revenue, ["CAPEX/Выручка", "CAPEX/Revenue"]),
-                IRR(irr, ["IR Рейтинг", "IR Rating"]),
-                ShareHolders(
-                    for_graph=share_holders[0]["for_graph"],
-                    data=share_holders[0]["data"],
-                    aliases=[
-                        "Держатель акции",
-                        "Структура и состав акционеров",
-                        "Share holder",
-                    ],
-                ),
-            )
-
-            print(
-                "\n\nWARNING: If function returned absolutely empty list, then it means that there is no data for this company. \nPlease, make sure the company ticker you passed is correct and exists.\n\n"
-            )
-            return total_data
-
-        elif period == "quarter" or period == "q":
+        if period in ["quarter", "q", "qurater"]:
             url = f"https://smart-lab.ru/q/{ticker}/f/q/"
 
-            # Initialize the BeautifulSoup object
-            try:
-                print("INFO:", "Using lxml for parsing")
-                self.parser = BeautifulSoup(requests.get(url).text, "lxml")
-
-            except ImportError as e:
-                print("WARNING: Using html.parser instead")
-                self.parser = BeautifulSoup(requests.get(url).text, "html.parser")
-
-            # Assign the instant to a variable
-            soup = self.parser
-
-            # Get years
-            years = self.get_years()
-
-            # Get currency
-            currency = self.get_currency()
-
-            # Get report_url
-            report_url = self.get_report_url()
-
-            # Get year_report_url
-            year_report_url = self.get_year_report_url()
-
-            # Get presentation_url
-            presentation_url = self.get_presentation_url()
-
-            # Get oil_production
-            oil_production = self.get_oil_production()
-
-            # Get oil_refining
-            oil_refining = self.get_oil_refining()
-
-            # Get gas_production
-            gas_production = self.get_gas_production()
-
-            # Get revenue
-            revenue = self.get_revenue()
-
-            # Get operating_income
-            operating_income = self.get_operating_income()
-
-            # Get ebitda
-            ebitda = self.get_ebitda()
-
-            # Get net_income
-            net_income = self.get_net_income()
-
-            # Get net_income_ns
-            net_income_ns = self.get_net_income_ns()
-
-            # Get ocf
-            ocf = self.get_ocf()
-
-            # Get capex
-            capex = self.get_capex()
-
-            # Get fcf
-            fcf = self.get_fcf()
-
-            # Get dividend_payout
-            dividend_payout = self.get_dividend_payout()
-
-            # Get dividend
-            dividend = self.get_dividend()
-
-            # Get div_yield
-            div_yield = self.get_div_yield()
-
-            # Get div_payout_ratio
-            div_payout_ratio = self.get_div_payout_ratio()
-
-            # Get opex
-            opex = self.get_opex()
-
-            # Get cost_of_production
-            cost_of_production = self.get_cost_of_production()
-
-            # Get r_and_d
-            r_and_d = self.get_r_and_d()
-
-            # Get employment_expenses
-            employment_expenses = self.get_employment_expenses()
-
-            # Get interest_expenses
-            interest_expenses = self.get_interest_expenses()
-
-            # Get assets
-            assets = self.get_assets()
-
-            # Get net_assets
-            net_assets = self.get_net_assets()
-
-            # Get debt
-            debt = self.get_debt()
-
-            # Get cash
-            cash = self.get_cash()
-
-            # Get net_debt
-            net_debt = self.get_net_debt()
-
-            # Get common_share
-            common_share = self.get_common_share()
-
-            # Get number_of_shares
-            number_of_shares = self.get_number_of_shares()
-
-            # Get free_float
-            free_float = self.get_free_float()
-
-            # Get market_cap
-            market_cap = self.get_market_cap()
-
-            # Get ev
-            ev = self.get_ev()
-
-            # Get book_value
-            book_value = self.get_book_value()
-
-            # Get eps
-            eps = self.get_eps()
-
-            # Get fcf_share
-            fcf_share = self.get_fcf_share()
-
-            # Get bv_share
-            bv_share = self.get_bv_share()
-
-            # Get ebitda_margin
-            ebitda_margin = self.get_ebitda_margin()
-
-            # Get net_margin
-            net_margin = self.get_net_margin()
-
-            # Get fcf_yield
-            fcf_yield = self.get_fcf_yield()
-
-            # Get roe
-            roe = self.get_roe()
-
-            # Get roa
-            roa = self.get_roa()
-
-            # Get p_e
-            p_e = self.get_p_e()
-
-            # Get p_s
-            p_s = self.get_p_s()
-
-            # Get p_bv
-            p_bv = self.get_p_bv()
-
-            # Get ev_ebitda
-            ev_ebitda = self.get_ev_ebitda()
-
-            # Get debt_ebitda
-            debt_ebitda = self.get_debt_ebitda()
-
-            # Get employees
-            employees = self.get_employees()
-
-            # Get labour_productivity
-            labour_productivity = self.get_labour_productivity()
-
-            # Get expenses_per_employee
-            expenses_per_employee = self.get_expenses_per_employee()
-
-            # Get r_and_d_capex
-            r_and_d_capex = self.get_r_and_d_capex()
-
-            # Get capex_revenue
-            capex_revenue = self.get_capex_revenue()
-
-            # Get irr
-            irr = self.get_irr()
-
-            # Get share_holders
-            share_holders = self.get_share_holders()
-
-            total_data = TotalData(
-                Years(years, ["Периоды", "Время", "Года", "Periods", "Dates", "Years"]),
-                Currency(currency, ["Валюта", "Currency"]),
-                ReportUrl(
-                    report_url, ["Финансовый отчет", "Financial report", "report url"]
-                ),
-                YearReportUrl(
-                    year_report_url,
-                    [
-                        "Годовой отчет",
-                        "Годовой финансовый отчет",
-                        "Year report url",
-                        "Year financial report",
-                        "Year financial report url",
-                    ],
-                ),
-                PresentationUrl(
-                    presentation_url,
-                    ["Презентация", "Presentation", "presentation url"],
-                ),
-                OilProduction(oil_production, ["Добыча нефти", "Oil production"]),
-                OilRefining(oil_refining, ["Переработка нефти", "Oil refining"]),
-                GasProduction(gas_production, ["Добыча газа", "Gas production"]),
-                Revenue(revenue, ["Выручка", "Доходы", "Revenue"]),
-                OperatingIncome(
-                    operating_income, ["Операционная прибыль", "Operating Income"]
-                ),
-                Ebitda(ebitda, ["ebitda", "Ebitda", "EBITDA"]),
-                NetIncome(net_income, ["Чистая прибыль", "Net Income"]),
-                NetIncomeNS(net_income_ns, ["Чистая прибыль н/с", "Net Income N/S"]),
-                Ocf(ocf, ["Операционный денежный поток", "Operating Cash Flow (OCF)"]),
-                Capex(
-                    capex,
-                    [
-                        "Сумма операционных расходов",
-                        "capex",
-                        "Capital expenditure (Capex)",
-                    ],
-                ),
-                Fcf(fcf, ["Свободный денежный поток (FCF)", "Free Cash Flow (FCF)"]),
-                DividendPayout(
-                    dividend_payout,
-                    ["Див. выплата", "Выплата дивидендов", "Dividend Payout"],
-                ),
-                Dividend(dividend, ["Дивиденд", "Dividend"]),
-                DivYield(div_yield, ["Див. доход, ао", "Dividend yield"]),
-                DivPayoutRatio(
-                    div_payout_ratio,
-                    ["Дивиденды/прибыль", "Div Payout Ratio", "Dividend/Payout ratio"],
-                ),
-                Opex(opex, ["Опер. расходы", "Operational expenditure", "Opex"]),
-                CostOfProduction(
-                    cost_of_production, ["Себестоимость", "Cost of production"]
-                ),
-                RandD(r_and_d, ["НИОКР", "research and development", "R&D"]),
-                EmploymentExpenses(
-                    employment_expenses, ["Расход на персонал", "Employment expenses"]
-                ),
-                InterestExpenses(
-                    interest_expenses, ["Процентные расходы", "Interest expenses"]
-                ),
-                Assets(assets, ["Активы", "Assets"]),
-                NetAssets(net_assets, ["Чистые активы", "Net assets"]),
-                Debt(debt, ["Долг", "Debt"]),
-                Cash(cash, ["Наличность", "Cash"]),
-                NetDebt(net_debt, ["Чистый долг", "Net debt"]),
-                CommonShare(common_share, ["Цена акции ао", "Common share"]),
-                NumberOfShares(
-                    number_of_shares, ["Число акций ао", "Number of shares"]
-                ),
-                FreeFloat(free_float, ["Free Float"]),
-                MarketCap(market_cap, ["Капитализация", "Market cap"]),
-                EV(ev, ["EV"]),
-                BookValue(book_value, ["Баланс стоимость", "Book value"]),
-                Eps(eps, ["EPS"]),
-                FcfShare(fcf_share, ["FCF/акцию", "FCF/share"]),
-                BvShare(bv_share, ["BV/акцию", "BV/share"]),
-                EbitdaMargin(ebitda_margin, ["Рентаб. EBITDA", "Ebitda margin"]),
-                NetMargin(net_margin, ["Чистая рентаб.", "Net margin"]),
-                FcfYield(fcf_yield, ["Доходность FCF", "FCF yield"]),
-                Roe(roe, ["ROE"]),
-                Roa(roa, ["ROA"]),
-                PE(p_e, ["P/E"]),
-                PS(p_s, ["P/S"]),
-                PBV(p_bv, ["P/BV"]),
-                EvEbitda(ev_ebitda, ["EV/EBITDA"]),
-                DebtEbitda(debt_ebitda, ["Долг/EBITDA", "Debt/EBITDA"]),
-                Employees(employees, ["Персонал", "Employees"]),
-                LabourProductivity(
-                    labour_productivity,
-                    ["Производительность труда", "Labour productivity"],
-                ),
-                ExpensesPerEmployee(
-                    expenses_per_employee, ["Расходы/чел/год", "Expenses per employee"]
-                ),
-                RDcapex(r_and_d_capex, ["R&D/Capex"]),
-                CapexRevenue(capex_revenue, ["CAPEX/Выручка", "CAPEX/Revenue"]),
-                IRR(irr, ["IR Рейтинг", "IR Rating"]),
-                ShareHolders(
-                    for_graph=share_holders[0]["for_graph"],
-                    data=share_holders[0]["data"],
-                    aliases=[
-                        "Держатель акции",
-                        "Структура и состав акционеров",
-                        "Share holder",
-                    ],
-                ),
-            )
-
+        if url is None:
             print(
-                "\n\nWARNING: If function returned absolutely empty list, then it means that there is no data for this company. \nPlease, make sure the company ticker you passed is correct and exists.\n\n"
-            )
-            return total_data
-
-        else:
-            print(
-                "\n\nWARNING: If function returned absolutely empty list, then it means that there is no data for this company. \nPlease, enter correct period type and try again. \nAvailable periods: 'year' or just'y', 'quarter' or just 'q'\n\n"
+                f"Period '{period}' is incorrect. Please, make sure period is either 'year' or 'quarter'. \nAlso, you can specify only first letter of periods. \ne.g: 'y' - for 'year', 'q' - for 'quarter'."
             )
             return None
+
+        # Initialize the BeautifulSoup object
+        try:
+            print("INFO:", "Using lxml for parsing")
+            self.parser = BeautifulSoup(requests.get(url).text, "lxml")
+
+        except ImportError as e:
+            print("WARNING: Using html.parser instead")
+            self.parser = BeautifulSoup(requests.get(url).text, "html.parser")
+
+        # Assign the instant to a variable
+        soup = self.parser
+
+        # Get years
+        years = self.get_years()
+
+        # Get currency
+        currency = self.get_currency()
+
+        # Get report_url
+        report_url = self.get_report_url()
+
+        # Get year_report_url
+        year_report_url = self.get_year_report_url()
+
+        # Get presentation_url
+        presentation_url = self.get_presentation_url()
+
+        # Get oil_production
+        oil_production = self.get_oil_production()
+
+        # Get oil_refining
+        oil_refining = self.get_oil_refining()
+
+        # Get gas_production
+        gas_production = self.get_gas_production()
+
+        # Get revenue
+        revenue = self.get_revenue()
+
+        # Get operating_income
+        operating_income = self.get_operating_income()
+
+        # Get ebitda
+        ebitda = self.get_ebitda()
+
+        # Get net_income
+        net_income = self.get_net_income()
+
+        # Get net_income_ns
+        net_income_ns = self.get_net_income_ns()
+
+        # Get ocf
+        ocf = self.get_ocf()
+
+        # Get capex
+        capex = self.get_capex()
+
+        # Get fcf
+        fcf = self.get_fcf()
+
+        # Get dividend_payout
+        dividend_payout = self.get_dividend_payout()
+
+        # Get dividend
+        dividend = self.get_dividend()
+
+        # Get div_yield
+        div_yield = self.get_div_yield()
+
+        # Get div_payout_ratio
+        div_payout_ratio = self.get_div_payout_ratio()
+
+        # Get opex
+        opex = self.get_opex()
+
+        # Get cost_of_production
+        cost_of_production = self.get_cost_of_production()
+
+        # Get r_and_d
+        r_and_d = self.get_r_and_d()
+
+        # Get employment_expenses
+        employment_expenses = self.get_employment_expenses()
+
+        # Get interest_expenses
+        interest_expenses = self.get_interest_expenses()
+
+        # Get assets
+        assets = self.get_assets()
+
+        # Get net_assets
+        net_assets = self.get_net_assets()
+
+        # Get debt
+        debt = self.get_debt()
+
+        # Get cash
+        cash = self.get_cash()
+
+        # Get net_debt
+        net_debt = self.get_net_debt()
+
+        # Get common_share
+        common_share = self.get_common_share()
+
+        # Get number_of_shares
+        number_of_shares = self.get_number_of_shares()
+
+        # Get free_float
+        free_float = self.get_free_float()
+
+        # Get market_cap
+        market_cap = self.get_market_cap()
+
+        # Get ev
+        ev = self.get_ev()
+
+        # Get book_value
+        book_value = self.get_book_value()
+
+        # Get eps
+        eps = self.get_eps()
+
+        # Get fcf_share
+        fcf_share = self.get_fcf_share()
+
+        # Get bv_share
+        bv_share = self.get_bv_share()
+
+        # Get ebitda_margin
+        ebitda_margin = self.get_ebitda_margin()
+
+        # Get net_margin
+        net_margin = self.get_net_margin()
+
+        # Get fcf_yield
+        fcf_yield = self.get_fcf_yield()
+
+        # Get roe
+        roe = self.get_roe()
+
+        # Get roa
+        roa = self.get_roa()
+
+        # Get p_e
+        p_e = self.get_p_e()
+
+        # Get p_s
+        p_s = self.get_p_s()
+
+        # Get p_bv
+        p_bv = self.get_p_bv()
+
+        # Get ev_ebitda
+        ev_ebitda = self.get_ev_ebitda()
+
+        # Get debt_ebitda
+        debt_ebitda = self.get_debt_ebitda()
+
+        # Get employees
+        employees = self.get_employees()
+
+        # Get labour_productivity
+        labour_productivity = self.get_labour_productivity()
+
+        # Get expenses_per_employee
+        expenses_per_employee = self.get_expenses_per_employee()
+
+        # Get r_and_d_capex
+        r_and_d_capex = self.get_r_and_d_capex()
+
+        # Get capex_revenue
+        capex_revenue = self.get_capex_revenue()
+
+        # Get irr
+        irr = self.get_irr()
+
+        # Get share_holders
+        share_holders = self.get_share_holders()
+
+        total_data = TotalData(
+            Years(years, ["Периоды", "Время", "Года", "Periods", "Dates", "Years"]),
+            Currency(currency, ["Валюта", "Currency"]),
+            ReportUrl(
+                report_url, ["Финансовый отчет", "Financial report", "report url"]
+            ),
+            YearReportUrl(
+                year_report_url,
+                [
+                    "Годовой отчет",
+                    "Годовой финансовый отчет",
+                    "Year report url",
+                    "Year financial report",
+                    "Year financial report url",
+                ],
+            ),
+            PresentationUrl(
+                presentation_url,
+                ["Презентация", "Presentation", "presentation url"],
+            ),
+            OilProduction(oil_production, ["Добыча нефти", "Oil production"]),
+            OilRefining(oil_refining, ["Переработка нефти", "Oil refining"]),
+            GasProduction(gas_production, ["Добыча газа", "Gas production"]),
+            Revenue(revenue, ["Выручка", "Доходы", "Revenue"]),
+            OperatingIncome(
+                operating_income, ["Операционная прибыль", "Operating Income"]
+            ),
+            Ebitda(ebitda, ["ebitda", "Ebitda", "EBITDA"]),
+            NetIncome(net_income, ["Чистая прибыль", "Net Income"]),
+            NetIncomeNS(net_income_ns, ["Чистая прибыль н/с", "Net Income N/S"]),
+            Ocf(ocf, ["Операционный денежный поток", "Operating Cash Flow (OCF)"]),
+            Capex(
+                capex,
+                [
+                    "Сумма операционных расходов",
+                    "capex",
+                    "Capital expenditure (Capex)",
+                ],
+            ),
+            Fcf(fcf, ["Свободный денежный поток (FCF)", "Free Cash Flow (FCF)"]),
+            DividendPayout(
+                dividend_payout,
+                ["Див. выплата", "Выплата дивидендов", "Dividend Payout"],
+            ),
+            Dividend(dividend, ["Дивиденд", "Dividend"]),
+            DivYield(div_yield, ["Див. доход, ао", "Dividend yield"]),
+            DivPayoutRatio(
+                div_payout_ratio,
+                ["Дивиденды/прибыль", "Div Payout Ratio", "Dividend/Payout ratio"],
+            ),
+            Opex(opex, ["Опер. расходы", "Operational expenditure", "Opex"]),
+            CostOfProduction(
+                cost_of_production, ["Себестоимость", "Cost of production"]
+            ),
+            RandD(r_and_d, ["НИОКР", "research and development", "R&D"]),
+            EmploymentExpenses(
+                employment_expenses, ["Расход на персонал", "Employment expenses"]
+            ),
+            InterestExpenses(
+                interest_expenses, ["Процентные расходы", "Interest expenses"]
+            ),
+            Assets(assets, ["Активы", "Assets"]),
+            NetAssets(net_assets, ["Чистые активы", "Net assets"]),
+            Debt(debt, ["Долг", "Debt"]),
+            Cash(cash, ["Наличность", "Cash"]),
+            NetDebt(net_debt, ["Чистый долг", "Net debt"]),
+            CommonShare(common_share, ["Цена акции ао", "Common share"]),
+            NumberOfShares(number_of_shares, ["Число акций ао", "Number of shares"]),
+            FreeFloat(free_float, ["Free Float"]),
+            MarketCap(market_cap, ["Капитализация", "Market cap"]),
+            EV(ev, ["EV"]),
+            BookValue(book_value, ["Баланс стоимость", "Book value"]),
+            Eps(eps, ["EPS"]),
+            FcfShare(fcf_share, ["FCF/акцию", "FCF/share"]),
+            BvShare(bv_share, ["BV/акцию", "BV/share"]),
+            EbitdaMargin(ebitda_margin, ["Рентаб. EBITDA", "Ebitda margin"]),
+            NetMargin(net_margin, ["Чистая рентаб.", "Net margin"]),
+            FcfYield(fcf_yield, ["Доходность FCF", "FCF yield"]),
+            Roe(roe, ["ROE"]),
+            Roa(roa, ["ROA"]),
+            PE(p_e, ["P/E"]),
+            PS(p_s, ["P/S"]),
+            PBV(p_bv, ["P/BV"]),
+            EvEbitda(ev_ebitda, ["EV/EBITDA"]),
+            DebtEbitda(debt_ebitda, ["Долг/EBITDA", "Debt/EBITDA"]),
+            Employees(employees, ["Персонал", "Employees"]),
+            LabourProductivity(
+                labour_productivity,
+                ["Производительность труда", "Labour productivity"],
+            ),
+            ExpensesPerEmployee(
+                expenses_per_employee, ["Расходы/чел/год", "Expenses per employee"]
+            ),
+            RDcapex(r_and_d_capex, ["R&D/Capex"]),
+            CapexRevenue(capex_revenue, ["CAPEX/Выручка", "CAPEX/Revenue"]),
+            IRR(irr, ["IR Рейтинг", "IR Rating"]),
+            ShareHolders(
+                for_graph=share_holders[0]["for_graph"],
+                data=share_holders[0]["data"],
+                aliases=[
+                    "Держатель акции",
+                    "Структура и состав акционеров",
+                    "Share holder",
+                ],
+            ),
+        )
+
+        print(
+            "\n\nWARNING: If function returned absolutely empty list, then it means that there is no data for this company. \nPlease, make sure the company ticker you passed is correct and exists.\n\n"
+        )
+        return total_data
 
     def get_companies_names(self):
         """
@@ -1863,20 +1813,18 @@ class SmartLabAPI:
         :return: list
         """
 
-        url = 'https://smart-lab.ru/q/shares/'
+        url = "https://smart-lab.ru/q/shares/"
 
         resp = requests.get(url).text
         soup = BeautifulSoup(resp, "lxml")
 
-        all_companies = soup.find_all("tr", attrs={'class': None})
+        all_companies = soup.find_all("tr", attrs={"class": None})
         tds = []
 
         for company in all_companies[1:]:
             temp_tds = company.find_all("td")
 
-            tds.append(
-                [temp_tds[2].get_text(), temp_tds[3].get_text()]
-            )
+            tds.append([temp_tds[2].get_text(), temp_tds[3].get_text()])
 
         if tds is None or len(tds) == 0:
             return None
@@ -1885,7 +1833,9 @@ class SmartLabAPI:
 
     def get_auto_complete_values(self, value):
         try:
-            resp = requests.get(f"https://smart-lab.ru/forum/ajaxsearchticker/?reports=1&value={value}").json()
+            resp = requests.get(
+                f"https://smart-lab.ru/forum/ajaxsearchticker/?reports=1&value={value}"
+            ).json()
             return resp
         except Exception as e:
             return None
