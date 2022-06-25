@@ -105,7 +105,7 @@ class SmartLabAdvancedAPI:
                 all_scripts = soup.find_all("script", attrs={"type": "text/javascript"})
 
                 str_dict = (
-                    str(all_scripts[18].string)
+                    str(all_scripts[-2].string)
                     .split('{point.comment}"},')[0]
                     .replace("var aYearData = ", "")
                     .replace("\t", "")
@@ -173,15 +173,21 @@ class SmartLabAdvancedAPI:
 
                 all_scripts = soup.find_all("script", attrs={"type": "text/javascript"})
 
-                str_data = (
-                    str(all_scripts[18].string)
-                    .split('{point.comment}"},')[1]
-                    .split("var aQuarterData = ")[1]
-                    .replace("\t", "")
-                    .replace("\n", "")
-                    .replace("'", '"')
-                    + '{point.comment}"}}'
-                )
+                # print(all_scripts[10:-1])
+                try:
+                    str_data = (
+                        str(all_scripts[-2].string)
+                        .split('{point.comment}"},')[1]
+                        .split("var aQuarterData = ")[1]
+                        .replace("\t", "")
+                        .replace("\n", "")
+                        .replace("'", '"')
+                        + '{point.comment}"}}'
+                    )
+                except Exception as e:
+                    print("ERROR:", e)
+                    print("page:", response.url)
+                    print("ALL scripts:", all_scripts)
                 
                 try:
                     json_dict = json.loads(str_data)
