@@ -239,8 +239,8 @@ class SmartLabAdvancedAPI:
             return full_data_year
 
         elif period in ["quarter", "q", "qurater"]:
-            full_info_quarter = get_full_info("quarter", ticker)
-            full_data_quarter = get_full_data_quarter(full_info_quarter)
+            full_info_quarter = cls.get_full_info("quarter", ticker)
+            full_data_quarter = cls.get_full_data_quarter(full_info_quarter)
             return full_data_quarter
 
         else:
