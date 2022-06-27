@@ -114,12 +114,12 @@ async def get_url(period: str = None, ticker: str = None, full_info: bool = Fals
 
         if period in ["year", "y", "yaer"]:
             api = SmartLabAPI.SmartLabAdvancedAPI()
-            total_data = api.get_full_data_for_period(ticker=ticker, period="year")
+            total_data = await api.get_full_data_for_period(ticker=ticker, period="year")
             print("Total data:", total_data)
 
         if period in ["quarter", "q", "qurater"]:
             api = SmartLabAPI.SmartLabAdvancedAPI()
-            total_data = api.get_full_data_for_period(ticker=ticker, period="quarter")
+            total_data = await api.get_full_data_for_period(ticker=ticker, period="quarter")
 
         if total_data is None:
             return JSONResponse(

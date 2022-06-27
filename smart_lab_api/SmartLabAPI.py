@@ -8,7 +8,7 @@ def stub(*args, **kwargs):  # pylint: disable=unused-argument
 monkey.patch_all = stub
 
 import grequests
-import requests, json
+import requests, json, aiohttp
 import bs4
 from bs4 import BeautifulSoup
 from typing import List, Dict, Any
@@ -25,7 +25,7 @@ def handler(err, e):
 
 class SmartLabAdvancedAPI:
     @classmethod
-    def get_full_info(cls, period: str = None, ticker: str = None) -> List[FullInfo]:
+    async def get_full_info(cls, period: str = None, ticker: str = None) -> List[FullInfo]:
         if ticker is None or period is None:
             return None
 
@@ -43,10 +43,17 @@ class SmartLabAdvancedAPI:
             )
             return None
 
-        resp = (grequests.get(u) for u in url)
-        response = grequests.map(resp)
+        # resp = (grequests.get(u) for u in url)
+        # response = grequests.map(resp)
 
-        resp = response[0].text
+        resp = None
+
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url[0]) as response:
+                resp = await response.text()
+
+        if resp is None:
+            return None
         soup = bs4.BeautifulSoup(resp, "lxml")
 
         all_links = soup.find_all("a", attrs={"target": "_blank"})
@@ -88,19 +95,30 @@ class SmartLabAdvancedAPI:
         return all_a
 
     @classmethod
-    def get_full_data_year(cls, full_info: List[FullInfo] = None) -> List[FullData]:
+    async def get_full_data_year(cls, full_info: List[FullInfo] = None) -> List[FullData]:
         if full_info is None:
             return None
 
         if isinstance(full_info, list):
             full_data = []
 
-            rs = (grequests.get(info.url) for info in full_info)
-            responses = grequests.map(rs)
+            # rs = (grequests.get(info.url) for info in full_info)
+            # responses = grequests.map(rs)
+
+            responses = []
+
+
+            async with aiohttp.ClientSession() as session:
+                for info in full_info:
+                    async with session.get(info.url) as response:
+                        data = {
+                            "text": await response.text(),
+                            "url": response.url,
+                            }
+                        responses.append(data)
 
             for response in responses:
-                
-                soup = bs4.BeautifulSoup(response.text, "lxml")
+                soup = bs4.BeautifulSoup(response['text'], "lxml")
 
                 all_scripts = soup.find_all("script", attrs={"type": "text/javascript"})
 
@@ -117,10 +135,10 @@ class SmartLabAdvancedAPI:
                 try:
                     json_dict = json.loads(str_dict)
 
-                    tree = fromstring(response.content)
+                    tree = fromstring(response['text'])
                     title = tree.findtext(".//title")
 
-                    splitted_texts = response.url.split("/")
+                    splitted_texts = str(response['url']).split("/")
                     name = splitted_texts[-2]
 
                     data = FullData(
@@ -137,10 +155,10 @@ class SmartLabAdvancedAPI:
                 except Exception as e:
                     print("ERROR:", e)
 
-                    tree = fromstring(response.content)
+                    tree = fromstring(response['text'])
                     title = tree.findtext(".//title")
 
-                    splitted_texts = response.url.split("/")
+                    splitted_texts = str(response['url']).split("/")
                     name = splitted_texts[-2]
 
                     full_data.append(
@@ -160,20 +178,31 @@ class SmartLabAdvancedAPI:
             return []
 
     @classmethod
-    def get_full_data_quarter(cls, full_info: List[FullInfo]) -> List[FullData]:
+    async def get_full_data_quarter(cls, full_info: List[FullInfo]) -> List[FullData]:
         if isinstance(full_info, list):
             full_data = []
 
-            rs = (grequests.get(info.url) for info in full_info)
+            # rs = (grequests.get(info.url) for info in full_info)
             
-            responses = grequests.map(rs)
+            # responses = grequests.map(rs)
+
+            responses = []
+
+            async with aiohttp.ClientSession() as session:
+                for info in full_info:
+                    async with session.get(info.url) as response:
+                        data = {
+                            "text": await response.text(),
+                            "url": response.url,
+                            }
+                        responses.append(data)
 
             for response in responses:
-                soup = bs4.BeautifulSoup(response.text, "lxml")
+                soup = bs4.BeautifulSoup(response['text'], "lxml")
 
                 all_scripts = soup.find_all("script", attrs={"type": "text/javascript"})
 
-                # print(all_scripts[10:-1])
+                print(all_scripts[15:-1])
                 try:
                     str_data = (
                         str(all_scripts[-2].string)
@@ -186,16 +215,16 @@ class SmartLabAdvancedAPI:
                     )
                 except Exception as e:
                     print("ERROR:", e)
-                    print("page:", response.url)
+                    print("page:", response['url'])
                     print("ALL scripts:", all_scripts)
                 
                 try:
                     json_dict = json.loads(str_data)
 
-                    tree = fromstring(response.content)
+                    tree = fromstring(response['text'])
                     title = tree.findtext(".//title")
 
-                    splitted_texts = response.url.split("/")
+                    splitted_texts = str(response['url']).split("/")
                     name = splitted_texts[-2]
 
                     data = FullData(
@@ -212,10 +241,10 @@ class SmartLabAdvancedAPI:
                 except Exception as e:
                     print("ERROR:", e)
 
-                    tree = fromstring(response.content)
+                    tree = fromstring(response['text'])
                     title = tree.findtext(".//title")
 
-                    splitted_texts = response.url.split("/")
+                    splitted_texts = str(response['url']).split("/")
                     name = splitted_texts[-2]
 
                     full_data.append(
@@ -235,19 +264,19 @@ class SmartLabAdvancedAPI:
             return []
 
     @classmethod
-    def get_full_data_for_period(cls, period: str = None, ticker: str = None):
+    async def get_full_data_for_period(cls, period: str = None, ticker: str = None):
         if ticker is None or period is None:
             return None
 
         if period in ["year", "y", "yaer"]:
-            full_info_year = cls.get_full_info("year", ticker)
-            full_data_year = cls.get_full_data_year(full_info_year)
+            full_info_year = await cls.get_full_info("year", ticker)
+            full_data_year = await cls.get_full_data_year(full_info_year)
             return full_data_year
 
         elif period in ["quarter", "q", "qurater"]:
-            full_info_quarter = cls.get_full_info("quarter", ticker)
+            full_info_quarter = await cls.get_full_info("quarter", ticker)
             print("full_info_quarter:", full_info_quarter)
-            full_data_quarter = cls.get_full_data_quarter(full_info_quarter)
+            full_data_quarter = await cls.get_full_data_quarter(full_info_quarter)
             return full_data_quarter
 
         else:
