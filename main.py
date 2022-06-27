@@ -88,15 +88,31 @@ async def custom_404_handler(_, __):
 
 @app.exception_handler(500)
 async def custom_500_handler(_, __):
-    return {"ok": False, "message": "У нас проблемы, Хьюстон!"}
+    resp = JSONResponse(
+        content={"ok": False, "message": "Хьюстон, у нас проблемы!"},
+        media_type="application/json",
+        status_code=500,
+    )
+    return resp
+
+
+@app.get("/raise_error")
+async def raising_error():
+    print("str" + 1)
 
 
 @app.get("/{ticker}/{period}")
-async def get_info_about_company(period: str = None, ticker: str = None, full_info: bool = False):
+async def get_info_about_company(
+    period: str = None,
+    ticker: str = None,
+    full_info: bool = False,
+    include_data: str = "any",
+):
     """
-    :param period: year or quarter
-    :param ticker: ticker of company
-    :param full_info: if true, returns all info about company
+    ticker&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(path, required)&nbsp;&nbsp;&nbsp;&nbsp;- ticker of company\n
+    period&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(path, required)&nbsp;&nbsp;&nbsp;&nbsp;- year or quarter\n
+    full_info&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(query, optional)&nbsp;&nbsp;&nbsp;- if true, returns all info about company\n
+    include_data&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(query, optional)&nbsp;&nbsp;&nbsp;- data names seperated with comma. E.g: revenue,ebitda,operating_income\n
     """
     if period is None or period not in ["year", "y", "yaer", "quarter", "q", "qurater"]:
         return JSONResponse(
@@ -124,11 +140,15 @@ async def get_info_about_company(period: str = None, ticker: str = None, full_in
 
         if period in ["year", "y", "yaer"]:
             api = SmartLabAPI.SmartLabAdvancedAPI()
-            total_data = await api.get_full_data_for_period(ticker=ticker, period="year")
+            total_data = await api.get_full_data_for_period(
+                ticker=ticker, period="year", include_data=include_data
+            )
 
         if period in ["quarter", "q", "qurater"]:
             api = SmartLabAPI.SmartLabAdvancedAPI()
-            total_data = await api.get_full_data_for_period(ticker=ticker, period="quarter")
+            total_data = await api.get_full_data_for_period(
+                ticker=ticker, period="quarter", include_data=include_data
+            )
 
         if total_data is None:
             return JSONResponse(

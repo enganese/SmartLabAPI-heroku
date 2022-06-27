@@ -26,7 +26,9 @@ def handler(err, e):
 
 class SmartLabAdvancedAPI:
     @classmethod
-    async def get_full_info(cls, period: str = None, ticker: str = None) -> List[FullInfo]:
+    async def get_full_info(
+        cls, include_data_array, period: str = None, ticker: str = None
+    ) -> List[FullInfo]:
         if ticker is None or period is None:
             return None
 
@@ -79,16 +81,33 @@ class SmartLabAdvancedAPI:
                 data_type = href.split("/")[-3]
                 ticker = href.split("/")[-4]
 
-                data = FullInfo(
-                    ticker=ticker,
-                    data_type=data_type,
-                    title=title,
-                    text=text,
-                    url=url,
-                    href=href,
-                )
+                if isinstance(include_data_array, str) and include_data_array == "any":
+                    print("text", title)
 
-                all_a.append(data)
+                    data = FullInfo(
+                        ticker=ticker,
+                        data_type=data_type,
+                        title=title,
+                        text=text,
+                        url=url,
+                        href=href,
+                    )
+
+                    all_a.append(data)
+
+                elif (
+                    isinstance(include_data_array, list) and title in include_data_array
+                ):
+                    data = FullInfo(
+                        ticker=ticker,
+                        data_type=data_type,
+                        title=title,
+                        text=text,
+                        url=url,
+                        href=href,
+                    )
+
+                    all_a.append(data)
 
         if all_a is None or len(all_a) == 0:
             return []
@@ -96,7 +115,9 @@ class SmartLabAdvancedAPI:
         return all_a
 
     @classmethod
-    async def get_full_data_year(cls, full_info: List[FullInfo] = None) -> List[FullData]:
+    async def get_full_data_year(
+        cls, full_info: List[FullInfo] = None
+    ) -> List[FullData]:
         if full_info is None:
             return None
 
@@ -108,18 +129,17 @@ class SmartLabAdvancedAPI:
 
             responses = []
 
-
             async with aiohttp.ClientSession() as session:
                 for info in full_info:
                     async with session.get(info.url) as response:
                         data = {
                             "text": await response.text(),
                             "url": response.url,
-                            }
+                        }
                         responses.append(data)
 
             for response in responses:
-                soup = bs4.BeautifulSoup(response['text'], "lxml")
+                soup = bs4.BeautifulSoup(response["text"], "lxml")
 
                 all_scripts = soup.find_all("script", attrs={"type": "text/javascript"})
 
@@ -136,43 +156,38 @@ class SmartLabAdvancedAPI:
                 try:
                     json_dict = json.loads(str_dict)
 
-                    tree = fromstring(response['text'])
+                    tree = fromstring(response["text"])
                     title = tree.findtext(".//title")
 
-                    splitted_texts = str(response['url']).split("/")
+                    splitted_texts = str(response["url"]).split("/")
                     name = splitted_texts[-2]
 
                     data = FullData(
-                            name=name,
-                            title=title,
-                            categories=json_dict["diagram"]["categories"],
-                            data=json_dict["diagram"]["data"],
-                        )
-
-                    full_data.append(
-                        data
+                        name=name,
+                        title=title,
+                        categories=json_dict["diagram"]["categories"],
+                        data=json_dict["diagram"]["data"],
                     )
-                    print("Data year:", data.name, data.title)
+
+                    full_data.append(data)
                 except Exception as e:
                     print("ERROR:", e)
 
-                    tree = fromstring(response['text'])
+                    tree = fromstring(response["text"])
                     title = tree.findtext(".//title")
 
-                    splitted_texts = str(response['url']).split("/")
+                    splitted_texts = str(response["url"]).split("/")
                     name = splitted_texts[-2]
 
                     full_data.append(
                         FullData(name=name, title=title, categories=[], data=[])
                     )
 
-                    # print("Data:", str_data)
-                    # print("URL:", response.text)
                     continue
 
             # print("Length of all links:", len(full_info))
             # print("Length of all data:", len(full_data))
-            
+
             return full_data
 
         else:
@@ -184,7 +199,7 @@ class SmartLabAdvancedAPI:
             full_data = []
 
             # rs = (grequests.get(info.url) for info in full_info)
-            
+
             # responses = grequests.map(rs)
 
             responses = []
@@ -195,15 +210,14 @@ class SmartLabAdvancedAPI:
                         data = {
                             "text": await response.text(),
                             "url": response.url,
-                            }
+                        }
                         responses.append(data)
 
             for response in responses:
-                soup = bs4.BeautifulSoup(response['text'], "lxml")
+                soup = bs4.BeautifulSoup(response["text"], "lxml")
 
                 all_scripts = soup.find_all("script", attrs={"type": "text/javascript"})
 
-                print(all_scripts[15:-1])
                 try:
                     str_data = (
                         str(all_scripts[-2].string)
@@ -216,35 +230,33 @@ class SmartLabAdvancedAPI:
                     )
                 except Exception as e:
                     print("ERROR:", e)
-                    print("page:", response['url'])
+                    print("page:", response["url"])
                     # print("ALL scripts:", all_scripts)
-                
+
                 try:
                     json_dict = json.loads(str_data)
 
-                    tree = fromstring(response['text'])
+                    tree = fromstring(response["text"])
                     title = tree.findtext(".//title")
 
-                    splitted_texts = str(response['url']).split("/")
+                    splitted_texts = str(response["url"]).split("/")
                     name = splitted_texts[-2]
 
                     data = FullData(
-                            name=name,
-                            title=title,
-                            categories=json_dict["diagram"]["categories"],
-                            data=json_dict["diagram"]["data"]
-                        )
-
-                    full_data.append(
-                        data
+                        name=name,
+                        title=title,
+                        categories=json_dict["diagram"]["categories"],
+                        data=json_dict["diagram"]["data"],
                     )
+
+                    full_data.append(data)
                 except Exception as e:
                     print("ERROR:", e)
 
-                    tree = fromstring(response['text'])
+                    tree = fromstring(response["text"])
                     title = tree.findtext(".//title")
 
-                    splitted_texts = str(response['url']).split("/")
+                    splitted_texts = str(response["url"]).split("/")
                     name = splitted_texts[-2]
 
                     full_data.append(
@@ -260,18 +272,35 @@ class SmartLabAdvancedAPI:
             return []
 
     @classmethod
-    async def get_full_data_for_period(cls, period: str = None, ticker: str = None):
+    async def get_full_data_for_period(
+        cls, include_data: str, period: str = None, ticker: str = None
+    ):
+        include_data_array = (
+            "any"
+            if include_data == "any"
+            else include_data.replace(" ", "").split(",")
+            if "," in include_data
+            else [include_data]
+        )
+        print("include_data_array:", include_data_array)
+
         if ticker is None or period is None:
             return None
 
         if period in ["year", "y", "yaer"]:
-            full_info_year = await cls.get_full_info("year", ticker)
-            full_data_year = await cls.get_full_data_year(full_info_year)
+            full_info_year = await cls.get_full_info(
+                period="year", ticker=ticker, include_data_array=include_data_array
+            )
+            full_data_year = await cls.get_full_data_year(full_info=full_info_year)
             return full_data_year
 
         elif period in ["quarter", "q", "qurater"]:
-            full_info_quarter = await cls.get_full_info("quarter", ticker)
-            full_data_quarter = await cls.get_full_data_quarter(full_info_quarter)
+            full_info_quarter = await cls.get_full_info(
+                period="quarter", ticker=ticker, include_data_array=include_data_array
+            )
+            full_data_quarter = await cls.get_full_data_quarter(
+                full_info=full_info_quarter
+            )
             return full_data_quarter
 
         else:
