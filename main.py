@@ -87,7 +87,12 @@ async def custom_404_handler(_, __):
 
 
 @app.get("/{ticker}/{period}")
-async def get_url(period: str = None, ticker: str = None, full_info: bool = False):
+async def get_info_about_company(period: str = None, ticker: str = None, full_info: bool = False):
+    """
+    :param period: year or quarter
+    :param ticker: ticker of company
+    :param full_info: if true, returns all info about company
+    """
     if period is None or period not in ["year", "y", "yaer", "quarter", "q", "qurater"]:
         return JSONResponse(
             content={
