@@ -86,6 +86,11 @@ async def custom_404_handler(_, __):
     return RedirectResponse("/docs")
 
 
+@app.exception_handler(500)
+async def custom_500_handler(_, __):
+    return {"ok": False, "message": "У нас проблемы, Хьюстон!"}
+
+
 @app.get("/{ticker}/{period}")
 async def get_info_about_company(period: str = None, ticker: str = None, full_info: bool = False):
     """
@@ -120,7 +125,6 @@ async def get_info_about_company(period: str = None, ticker: str = None, full_in
         if period in ["year", "y", "yaer"]:
             api = SmartLabAPI.SmartLabAdvancedAPI()
             total_data = await api.get_full_data_for_period(ticker=ticker, period="year")
-            print("Total data:", total_data)
 
         if period in ["quarter", "q", "qurater"]:
             api = SmartLabAPI.SmartLabAdvancedAPI()

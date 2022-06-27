@@ -20,6 +20,7 @@ from .dataclass_types import *
 
 
 def handler(err, e):
+    # KEEP IT HERE, JUST FOR SOME DEBUG STAFF
     print("Handler:", err, e)
 
 
@@ -216,7 +217,7 @@ class SmartLabAdvancedAPI:
                 except Exception as e:
                     print("ERROR:", e)
                     print("page:", response['url'])
-                    print("ALL scripts:", all_scripts)
+                    # print("ALL scripts:", all_scripts)
                 
                 try:
                     json_dict = json.loads(str_data)
@@ -237,7 +238,6 @@ class SmartLabAdvancedAPI:
                     full_data.append(
                         data
                     )
-                    print("Data quarter:", data.name, data.title)
                 except Exception as e:
                     print("ERROR:", e)
 
@@ -250,15 +250,11 @@ class SmartLabAdvancedAPI:
                     full_data.append(
                         FullData(name=name, title=title, categories=[], data=[])
                     )
-
-                    # print("Data:", str_data)
-                    # print("URL:", response.text)
                     continue
 
             # print("Length of all links:", len(full_info))
             # print("Length of all data:", len(full_data))
 
-            print(full_data)
             return full_data
         else:
             return []
@@ -275,7 +271,6 @@ class SmartLabAdvancedAPI:
 
         elif period in ["quarter", "q", "qurater"]:
             full_info_quarter = await cls.get_full_info("quarter", ticker)
-            print("full_info_quarter:", full_info_quarter)
             full_data_quarter = await cls.get_full_data_quarter(full_info_quarter)
             return full_data_quarter
 
@@ -314,7 +309,6 @@ class SmartLabAPI:
             for td in td_rows:
                 text = Tools.normalize_text(td.get_text())
 
-                print("year:", text.split()[0])
                 years.append(text.split()[0])
 
             return years
@@ -1261,7 +1255,7 @@ class SmartLabAPI:
 
             return p_bv
         except Exception as e:
-            print("trying p/b")
+            print("Couldn't get p/bv info, now trying to fetch p/b")
             try:
                 # Get p_bv
                 p_b = []
@@ -1279,7 +1273,7 @@ class SmartLabAPI:
 
                 return p_bv
             except Exception as e:
-                print("error:", e)
+                print("quarter error:", e)
                 return []
 
     def get_ev_ebitda(self):
