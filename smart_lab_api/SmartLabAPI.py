@@ -282,7 +282,6 @@ class SmartLabAdvancedAPI:
             if "," in include_data
             else [include_data]
         )
-        print("include_data_array:", include_data_array)
 
         if ticker is None or period is None:
             return None

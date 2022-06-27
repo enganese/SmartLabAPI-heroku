@@ -96,11 +96,6 @@ async def custom_500_handler(_, __):
     return resp
 
 
-@app.get("/raise_error")
-async def raising_error():
-    print("str" + 1)
-
-
 @app.get("/{ticker}/{period}")
 async def get_info_about_company(
     period: str = None,
