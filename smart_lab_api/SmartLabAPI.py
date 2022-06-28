@@ -82,8 +82,6 @@ class SmartLabAdvancedAPI:
                 ticker = href.split("/")[-4]
 
                 if isinstance(include_data_array, str) and include_data_array == "any":
-                    print("text", title)
-
                     data = FullInfo(
                         ticker=ticker,
                         data_type=data_type,
