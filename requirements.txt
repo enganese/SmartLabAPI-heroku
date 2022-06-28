@@ -1,9 +1,11 @@
 fastapi
 uvicorn
 gunicorn
-aiohttp
+aiohttp[speedups]
 bs4
 grequests
 requests
 lxml
 gevent
+aiodns
+cchardet
