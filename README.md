@@ -1,6 +1,6 @@
 # SmartLabAPI | Scraper
 
-Scraper of https://smart-lab.ru, so everyone can get <table> info or full info.
+Scraper of https://smart-lab.ru, so everyone can get table info or full info.
   
 # What is full info?
 It's an full info about company that can be found by clicking on each row of table in https://smart-lab.ru/q/MSFT/f/y/. 
