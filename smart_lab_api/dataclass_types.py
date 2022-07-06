@@ -21,6 +21,17 @@ class FullData:
 
 
 @dataclass
+class FullDataDividend:
+    name: str | None
+    title: str | None
+    categories: List[int] | List[str] | list
+    dividend: list
+    div_yield: list
+    div_payout_ratio: list
+    dividend_payout: list
+
+
+@dataclass
 class Years:
     values: List[str] | List[int]
     aliases: List[str]

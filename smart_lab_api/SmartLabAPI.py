@@ -57,6 +57,7 @@ class SmartLabAdvancedAPI:
 
         if resp is None:
             return None
+
         soup = bs4.BeautifulSoup(resp, "lxml")
 
         all_links = soup.find_all("a", attrs={"target": "_blank"})
@@ -72,14 +73,28 @@ class SmartLabAdvancedAPI:
                 and "MSFO" in href
                 and not "/y/" in href
                 and not "/f/" in href
+                and "shares_fundamental" not in href
                 or href.startswith("/q/")
                 and "GAAP" in href
                 and not "/y/" in href
                 and not "/f/" in href
+                and "shares_fundamental" not in href
+                or href.startswith("/q/")
+                and not "GAAP" in href
+                and not "MSFO" in href
+                and not "/y/" in href
+                and not "/f/" in href
+                and "shares_fundamental" not in href
             ):
                 title = href.split("/")[-2]
-                data_type = href.split("/")[-3]
-                ticker = href.split("/")[-4]
+                
+                if "dividend" in title:
+                    data_type = "Unknown"
+                    ticker = href.split("/")[-3]
+                else:
+                    data_type = href.split("/")[-3]
+                    ticker = href.split("/")[-4]
+
 
                 if isinstance(include_data_array, str) and include_data_array == "any":
                     data = FullInfo(
@@ -120,6 +135,7 @@ class SmartLabAdvancedAPI:
             return None
 
         if isinstance(full_info, list):
+            print("full_info:", full_info)
             full_data = []
 
             # rs = (grequests.get(info.url) for info in full_info)
@@ -127,30 +143,55 @@ class SmartLabAdvancedAPI:
 
             responses = []
 
+            div = 0
+
             async with aiohttp.ClientSession() as session:
                 for info in full_info:
-                    async with session.get(info.url) as response:
-                        data = {
-                            "text": await response.text(),
-                            "url": response.url,
-                        }
-                        responses.append(data)
+                    if "dividend" in str(info.url):
+                        if div == 0:
+                            async with session.get(info.url) as response:
+                                if "dividend" in str(info.url):
+                                    div += 1
+                                
+                                data = {
+                                    "text": await response.text(),
+                                    "url": response.url,
+                                }
+                                responses.append(data)
+
+                    else:
+                        async with session.get(info.url) as response:
+                            data = {
+                                "text": await response.text(),
+                                "url": response.url,
+                            }
+                            responses.append(data)
 
             for response in responses:
                 soup = bs4.BeautifulSoup(response["text"], "lxml")
 
                 all_scripts = soup.find_all("script", attrs={"type": "text/javascript"})
 
-                str_dict = (
-                    str(all_scripts[-2].string)
-                    .split('{point.comment}"},')[0]
-                    .replace("var aYearData = ", "")
-                    .replace("\t", "")
-                    .replace("\n", "")
-                    .replace("'", '"')
-                    + '{point.comment}"}}'
-                )
-
+                if "dividend" not in str(response['url']):
+                    str_dict = (
+                        str(all_scripts[-2].string)
+                        .split('{point.comment}"},')[0]
+                        .replace("var aYearData = ", "")
+                        .replace("\t", "")
+                        .replace("\n", "")
+                        .replace("'", '"')
+                        + '{point.comment}"}}'
+                    )
+                else:
+                    str_dict = (
+                        str(all_scripts[-2].string)
+                        .split('{point.comment}"},')[0]
+                        .replace("var aYearSeries = ", "")
+                        .replace("\t", "")
+                        .replace("\n", "")
+                        .replace("'", '"').split(";function div")[0]
+                    )
+                    
                 try:
                     json_dict = json.loads(str_dict)
 
@@ -160,12 +201,24 @@ class SmartLabAdvancedAPI:
                     splitted_texts = str(response["url"]).split("/")
                     name = splitted_texts[-2]
 
-                    data = FullData(
-                        name=name,
-                        title=title,
-                        categories=json_dict["diagram"]["categories"],
-                        data=json_dict["diagram"]["data"],
-                    )
+                    if name == "dividend":
+                        data = FullDataDividend(
+                            name=name,
+                            title=title,
+                            categories=json_dict["xaxis"],
+                            dividend=json_dict["dividend"],
+                            div_yield=json_dict["div_yield"],
+                            div_payout_ratio=json_dict["div_payout_ratio"],
+                            dividend_payout=json_dict["dividend_payout"]
+                        )
+
+                    else:
+                        data = FullData(
+                            name=name,
+                            title=title,
+                            categories=json_dict["diagram"]["categories"],
+                            data=json_dict["diagram"]["data"],
+                        )
 
                     full_data.append(data)
                 except Exception as e:
