@@ -270,22 +270,32 @@ class SmartLabAdvancedAPI:
                 all_scripts = soup.find_all("script", attrs={"type": "text/javascript"})
 
                 try:
-                    str_data = (
-                        str(all_scripts[-2].string)
-                        .split('{point.comment}"},')[1]
-                        .split("var aQuarterData = ")[1]
-                        .replace("\t", "")
-                        .replace("\n", "")
-                        .replace("'", '"')
-                        + '{point.comment}"}}'
-                    )
+                    if "dividend" not in str(response['url']):
+                        str_dict = (
+                            str(all_scripts[-2].string)
+                            .split('{point.comment}"},')[0]
+                            .replace("var aYearData = ", "")
+                            .replace("\t", "")
+                            .replace("\n", "")
+                            .replace("'", '"')
+                            + '{point.comment}"}}'
+                        )
+                    else:
+                        str_dict = (
+                            str(all_scripts[-2].string)
+                            .split('{point.comment}"},')[0]
+                            .replace("var aYearSeries = ", "")
+                            .replace("\t", "")
+                            .replace("\n", "")
+                            .replace("'", '"').split(";function div")[0]
+                        )
                 except Exception as e:
                     print("ERROR:", e)
                     print("page:", response["url"])
                     # print("ALL scripts:", all_scripts)
 
                 try:
-                    json_dict = json.loads(str_data)
+                    json_dict = json.loads(str_dict)
 
                     tree = fromstring(response["text"])
                     title = tree.findtext(".//title")
@@ -293,16 +303,28 @@ class SmartLabAdvancedAPI:
                     splitted_texts = str(response["url"]).split("/")
                     name = splitted_texts[-2]
 
-                    data = FullData(
-                        name=name,
-                        title=title,
-                        categories=json_dict["diagram"]["categories"],
-                        data=json_dict["diagram"]["data"],
-                    )
+                    if name == "dividend":
+                        data = FullDataDividend(
+                            name=name,
+                            title=title,
+                            categories=json_dict["xaxis"],
+                            dividend=json_dict["dividend"],
+                            div_yield=json_dict["div_yield"],
+                            div_payout_ratio=json_dict["div_payout_ratio"],
+                            dividend_payout=json_dict["dividend_payout"]
+                        )
+
+                    else:
+                        data = FullData(
+                            name=name,
+                            title=title,
+                            categories=json_dict["diagram"]["categories"],
+                            data=json_dict["diagram"]["data"],
+                        )
 
                     full_data.append(data)
                 except Exception as e:
-                    print("ERROR:", e)
+                    print("ERROR 1:", e)
 
                     tree = fromstring(response["text"])
                     title = tree.findtext(".//title")
