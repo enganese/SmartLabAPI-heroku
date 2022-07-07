@@ -60,13 +60,12 @@ def to_json(total_data, debug: bool = True) -> dict | None:
 
 def to_json2(total_data, debug: bool = True) -> dict | None:
     try:
-        print("total_data", total_data)
         new_total_data = {}
 
         for item in total_data:
-            dict_name = item.name
+            dict_name = item.name                
 
-            if dict_name == "dividend":
+            if dict_name == "dividend" and dict_name != "ir-rating":
                 new_total_data[dict_name] = {
                     "name": item.name,
                     "title": item.title,
@@ -78,18 +77,19 @@ def to_json2(total_data, debug: bool = True) -> dict | None:
                 }
 
             else:
-                new_total_data[dict_name] = {
-                    # IMPORTANT: title is title of each page in cyrillic!
-                    "title": item.title,
-                    # IMPORTANT: categories are years!
-                    "categories": item.categories,
-                    "data": item.data,
-                }
+                if dict_name != "ir-rating":
+                    new_total_data[dict_name] = {
+                        # IMPORTANT: title is title of each page in cyrillic!
+                        "title": item.title,
+                        # IMPORTANT: categories are years!
+                        "categories": item.categories,
+                        "data": item.data,
+                    }
 
         return new_total_data
     except Exception as e:
         if debug:
-            print("ERROR:", e)
+            print("ERROR in to_json2():", e)
 
         return None
 

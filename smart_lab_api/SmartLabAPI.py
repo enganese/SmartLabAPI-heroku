@@ -8,8 +8,8 @@ def stub(*args, **kwargs):  # pylint: disable=unused-argument
 monkey.patch_all = stub
 
 import grequests
-import requests, json, aiohttp
-import bs4
+import requests, json, aiohttp, re, bs4
+
 from bs4 import BeautifulSoup
 from typing import List, Dict, Any
 from lxml.html import fromstring
@@ -183,14 +183,29 @@ class SmartLabAdvancedAPI:
                         + '{point.comment}"}}'
                     )
                 else:
-                    str_dict = (
-                        str(all_scripts[-2].string)
-                        .split('{point.comment}"},')[0]
-                        .replace("var aYearSeries = ", "")
-                        .replace("\t", "")
-                        .replace("\n", "")
-                        .replace("'", '"').split(";function div")[0]
-                    )
+                    variables = re.findall("aQuarterSeries", all_scripts[-2].string)
+                        
+                    if len(variables) == 5:
+                        str_dict = (
+                                str(all_scripts[-2].string)
+                                .split('{point.comment}"},')[0]
+                                .replace("var aYearSeries = ", "")
+                                .replace("\t", "")
+                                .replace("\n", "")
+                                .replace("'", '"').split(";function div")[0]
+                            )
+                        print("str_dict year WITHOUT quarter:", str_dict)
+                    
+                    elif len(variables) == 6:
+                        str_dict = (
+                            str(all_scripts[-2].string)
+                            .replace("var aYearSeries = ", "")
+                            .replace("\t", "")
+                            .replace("\n", "")
+                            .replace("'", '"')
+                            .split(";var aQuarterSeries = ")[0]
+                        )
+                        print("str_dict year with quarter:", str_dict)
                     
                 try:
                     json_dict = json.loads(str_dict)
@@ -222,7 +237,7 @@ class SmartLabAdvancedAPI:
 
                     full_data.append(data)
                 except Exception as e:
-                    print("ERROR:", e)
+                    print("ERROR 2:", e)
 
                     tree = fromstring(response["text"])
                     title = tree.findtext(".//title")
@@ -281,27 +296,43 @@ class SmartLabAdvancedAPI:
                             + '{point.comment}"}}'
                         )
                     else:
-                        str_dict = (
-                            str(all_scripts[-2].string)
-                            .split('{point.comment}"},')[0]
-                            .replace("var aYearSeries = ", "")
-                            .replace("\t", "")
-                            .replace("\n", "")
-                            .replace("'", '"').split(";function div")[0]
-                        )
+                        variables = re.findall("aQuarterSeries", all_scripts[-2].string)
+                        # Если квартер инфы нет
+                        if len(variables) == 5:
+                            str_dict = (
+                                str(all_scripts[-2].string)
+                                .split('{point.comment}"},')[0]
+                                .replace("var aYearSeries = ", "")
+                                .replace("\t", "")
+                                .replace("\n", "")
+                                .replace("'", '"').split(";function div")[0]
+                            )
+                        # Если квартер инфа есть
+                        elif len(variables) == 6:
+                            str_dict = (
+                                str(all_scripts[-2].string)
+                                .split('{point.comment}"},')[0]
+                                .replace("var aYearSeries = ", "")
+                                .replace("\t", "")
+                                .replace("\n", "")
+                                .replace("'", '"').split(";var aQuarterSeries = ")[1]
+                                .split(";function div")[0]
+                            )
+                            print("str_dict:", str_dict)
+
                 except Exception as e:
-                    print("ERROR:", e)
+                    print("ERROR 3:", e)
                     print("page:", response["url"])
                     # print("ALL scripts:", all_scripts)
+
+                
+                name = str(response["url"]).split("/")[-2]
 
                 try:
                     json_dict = json.loads(str_dict)
 
                     tree = fromstring(response["text"])
                     title = tree.findtext(".//title")
-
-                    splitted_texts = str(response["url"]).split("/")
-                    name = splitted_texts[-2]
 
                     if name == "dividend":
                         data = FullDataDividend(
@@ -324,7 +355,7 @@ class SmartLabAdvancedAPI:
 
                     full_data.append(data)
                 except Exception as e:
-                    print("ERROR 1:", e)
+                    # print("ERROR 1:", e, "\nname:", name, "\nlink:", str(response["url"]), end="\n\n")
 
                     tree = fromstring(response["text"])
                     title = tree.findtext(".//title")
