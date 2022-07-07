@@ -5,7 +5,7 @@ from typing import List, Dict, Any, Optional
 @dataclass
 class FullInfo:
     ticker: str
-    data_type: Optional[str]
+    data_type: Optional[str] | None
     title: str
     text: str
     url: str
@@ -18,6 +18,8 @@ class FullData:
     title: str | None
     categories: List[int] | list
     data: List[dict] | list
+    field: Optional[str] | None
+    point_format: Optional[str] | None
 
 
 @dataclass

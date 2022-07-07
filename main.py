@@ -84,6 +84,8 @@ def to_json2(total_data, debug: bool = True) -> dict | None:
                         # IMPORTANT: categories are years!
                         "categories": item.categories,
                         "data": item.data,
+                        "field": item.field,
+                        "point_format": item.point_format
                     }
 
         return new_total_data

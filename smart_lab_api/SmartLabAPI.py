@@ -233,6 +233,8 @@ class SmartLabAdvancedAPI:
                             title=title,
                             categories=json_dict["diagram"]["categories"],
                             data=json_dict["diagram"]["data"],
+                            field=json_dict["diagram"]["field"],
+                            point_format=json_dict["diagram"]["point_format"],
                         )
 
                     full_data.append(data)
@@ -246,7 +248,7 @@ class SmartLabAdvancedAPI:
                     name = splitted_texts[-2]
 
                     full_data.append(
-                        FullData(name=name, title=title, categories=[], data=[])
+                        FullData(name=name, title=title, categories=[], data=[], field="", point_format="")
                     )
 
                     continue
@@ -318,11 +320,10 @@ class SmartLabAdvancedAPI:
                                 .replace("'", '"').split(";var aQuarterSeries = ")[1]
                                 .split(";function div")[0]
                             )
-                            print("str_dict:", str_dict)
 
                 except Exception as e:
                     print("ERROR 3:", e)
-                    print("page:", response["url"])
+                    # print("page:", response["url"])
                     # print("ALL scripts:", all_scripts)
 
                 
@@ -351,6 +352,8 @@ class SmartLabAdvancedAPI:
                             title=title,
                             categories=json_dict["diagram"]["categories"],
                             data=json_dict["diagram"]["data"],
+                            field=json_dict["diagram"]["field"],
+                            point_format=json_dict["diagram"]["point_format"],
                         )
 
                     full_data.append(data)
@@ -364,7 +367,7 @@ class SmartLabAdvancedAPI:
                     name = splitted_texts[-2]
 
                     full_data.append(
-                        FullData(name=name, title=title, categories=[], data=[])
+                        FullData(name=name, title=title, categories=[], data=[], field="", point_format="")
                     )
                     continue
 
