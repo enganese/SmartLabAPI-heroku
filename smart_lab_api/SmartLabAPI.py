@@ -135,7 +135,7 @@ class SmartLabAdvancedAPI:
             return None
 
         if isinstance(full_info, list):
-            print("full_info:", full_info)
+            # print("full_info:", full_info)
             full_data = []
 
             # rs = (grequests.get(info.url) for info in full_info)
@@ -194,7 +194,6 @@ class SmartLabAdvancedAPI:
                                 .replace("\n", "")
                                 .replace("'", '"').split(";function div")[0]
                             )
-                        print("str_dict year WITHOUT quarter:", str_dict)
                     
                     elif len(variables) == 6:
                         str_dict = (
@@ -205,7 +204,6 @@ class SmartLabAdvancedAPI:
                             .replace("'", '"')
                             .split(";var aQuarterSeries = ")[0]
                         )
-                        print("str_dict year with quarter:", str_dict)
                     
                 try:
                     json_dict = json.loads(str_dict)
@@ -220,11 +218,11 @@ class SmartLabAdvancedAPI:
                         data = FullDataDividend(
                             name=name,
                             title=title,
-                            categories=json_dict["xaxis"],
-                            dividend=json_dict["dividend"],
-                            div_yield=json_dict["div_yield"],
-                            div_payout_ratio=json_dict["div_payout_ratio"],
-                            dividend_payout=json_dict["dividend_payout"]
+                            categories=json_dict["xaxis"] if "xaxis" in json_dict else None,
+                            dividend=json_dict["dividend"] if "dividend" in json_dict else [],
+                            div_yield=json_dict["div_yield"] if "div_yield" in json_dict else [],
+                            div_payout_ratio=json_dict["div_payout_ratio"] if "div_payout_ratio" in json_dict else [],
+                            dividend_payout=json_dict["dividend_payout"] if "dividend_payout" in json_dict else []
                         )
 
                     else:

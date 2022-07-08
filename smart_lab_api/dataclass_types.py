@@ -4,19 +4,19 @@ from typing import List, Dict, Any, Optional
 
 @dataclass
 class FullInfo:
-    ticker: str
+    ticker: Optional[str] | None
     data_type: Optional[str] | None
-    title: str
-    text: str
-    url: str
-    href: str
+    title: Optional[str] | None
+    text: Optional[str] | None
+    url: Optional[str] | None
+    href: Optional[str] | None
 
 
 @dataclass
 class FullData:
-    name: str | None
-    title: str | None
-    categories: List[int] | list
+    name: Optional[str] | None
+    title: Optional[str] | None
+    categories: List[int] | list | None
     data: List[dict] | list
     field: Optional[str] | None
     point_format: Optional[str] | None
