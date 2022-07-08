@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 import re
 from smart_lab_api import SmartLabAPI, dataclass_types
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
 
 
 app = fastapi.FastAPI()
@@ -15,6 +16,28 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+
+    openapi_schema = get_openapi(
+        title="Smart-Lab API",
+        version="1.1.0",
+        description="SmartLab API powered by FastAPI. \n\nIt's not official, but it's working.",
+        routes=app.routes,
+    )
+    openapi_schema["info"]["x-logo"] = {
+        "url": "https://i.imgur.com/ni2IwH2.png"
+    }
+
+    app.openapi_schema = openapi_schema
+    
+    return app.openapi_schema
+
+
+app.openapi = custom_openapi
 
 
 def camel_to_snake(text):
@@ -98,7 +121,7 @@ def to_json2(total_data, debug: bool = True) -> dict | None:
 
 @app.exception_handler(404)
 async def custom_404_handler(_, __):
-    return RedirectResponse("/docs")
+    return RedirectResponse("/redoc")
 
 
 @app.exception_handler(500)
