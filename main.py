@@ -84,9 +84,10 @@ def to_json(total_data, debug: bool = True) -> dict | None:
 def to_json2(total_data, debug: bool = True) -> dict | None:
     try:
         new_total_data = {}
+        print("Total data:", total_data)
 
         for item in total_data:
-            dict_name = item.name                
+            dict_name = item.name            
 
             if dict_name == "dividend" and dict_name != "ir-rating":
                 new_total_data[dict_name] = {
@@ -96,7 +97,7 @@ def to_json2(total_data, debug: bool = True) -> dict | None:
                     "dividend": item.dividend,
                     "div_yield": item.div_yield,
                     "div_payout_ratio": item.div_payout_ratio,
-                    "dividend_payout": item.dividend_payout
+                    "dividend_payout": item.dividend_payout,
                 }
 
             else:
@@ -108,7 +109,7 @@ def to_json2(total_data, debug: bool = True) -> dict | None:
                         "categories": item.categories,
                         "data": item.data,
                         "field": item.field,
-                        "point_format": item.point_format
+                        "point_format": item.point_format,
                     }
 
         return new_total_data

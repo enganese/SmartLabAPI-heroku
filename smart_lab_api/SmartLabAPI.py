@@ -87,14 +87,13 @@ class SmartLabAdvancedAPI:
                 and "shares_fundamental" not in href
             ):
                 title = href.split("/")[-2]
-                
+
                 if "dividend" in title:
                     data_type = "Unknown"
                     ticker = href.split("/")[-3]
                 else:
                     data_type = href.split("/")[-3]
                     ticker = href.split("/")[-4]
-
 
                 if isinstance(include_data_array, str) and include_data_array == "any":
                     data = FullInfo(
@@ -152,7 +151,7 @@ class SmartLabAdvancedAPI:
                             async with session.get(info.url) as response:
                                 if "dividend" in str(info.url):
                                     div += 1
-                                
+
                                 data = {
                                     "text": await response.text(),
                                     "url": response.url,
@@ -172,7 +171,7 @@ class SmartLabAdvancedAPI:
 
                 all_scripts = soup.find_all("script", attrs={"type": "text/javascript"})
 
-                if "dividend" not in str(response['url']):
+                if "dividend" not in str(response["url"]):
                     str_dict = (
                         str(all_scripts[-2].string)
                         .split('{point.comment}"},')[0]
@@ -184,29 +183,33 @@ class SmartLabAdvancedAPI:
                     )
                 else:
                     variables = re.findall("aQuarterSeries", all_scripts[-2].string)
-                        
+
                     if len(variables) == 5:
                         str_dict = (
-                                str(all_scripts[-2].string)
-                                .split('{point.comment}"},')[0]
-                                .replace("var aYearSeries = ", "")
-                                .replace("\t", "")
-                                .replace("\n", "")
-                                .replace("'", '"').split(";function div")[0]
-                            )
-                    
-                    elif len(variables) == 6:
-                        str_dict = (
                             str(all_scripts[-2].string)
+                            .split('{point.comment}"},')[0]
                             .replace("var aYearSeries = ", "")
                             .replace("\t", "")
                             .replace("\n", "")
                             .replace("'", '"')
-                            .split(";var aQuarterSeries = ")[0]
+                            .split(";function div")[0]
                         )
                     
+                    else:
+                        str_dict = {}
+
+                    # elif len(variables) == 6:
+                    #     str_dict = (
+                    #         str(all_scripts[-2].string)
+                    #         .replace("var aYearSeries = ", "")
+                    #         .replace("\t", "")
+                    #         .replace("\n", "")
+                    #         .replace("'", '"')
+                    #         .split(";var aQuarterSeries = ")[0]
+                    #     )
+
                 try:
-                    json_dict = json.loads(str_dict)
+                    json_dict = json.loads(str_dict) if str_dict != {} else {}
 
                     tree = fromstring(response["text"])
                     title = tree.findtext(".//title")
@@ -218,21 +221,31 @@ class SmartLabAdvancedAPI:
                         data = FullDataDividend(
                             name=name,
                             title=title,
-                            categories=json_dict["xaxis"] if "xaxis" in json_dict else None,
-                            dividend=json_dict["dividend"] if "dividend" in json_dict else [],
-                            div_yield=json_dict["div_yield"] if "div_yield" in json_dict else [],
-                            div_payout_ratio=json_dict["div_payout_ratio"] if "div_payout_ratio" in json_dict else [],
-                            dividend_payout=json_dict["dividend_payout"] if "dividend_payout" in json_dict else []
+                            categories=json_dict["xaxis"]
+                            if "xaxis" in json_dict
+                            else None,
+                            dividend=json_dict["dividend"]
+                            if "dividend" in json_dict
+                            else [],
+                            div_yield=json_dict["div_yield"]
+                            if "div_yield" in json_dict
+                            else [],
+                            div_payout_ratio=json_dict["div_payout_ratio"]
+                            if "div_payout_ratio" in json_dict
+                            else [],
+                            dividend_payout=json_dict["dividend_payout"]
+                            if "dividend_payout" in json_dict
+                            else [],
                         )
 
                     else:
                         data = FullData(
-                            name=name,
-                            title=title,
-                            categories=json_dict["diagram"]["categories"],
-                            data=json_dict["diagram"]["data"],
-                            field=json_dict["diagram"]["field"],
-                            point_format=json_dict["diagram"]["point_format"],
+                            name=name if name is not None else "",
+                            title=title if title is not None else "",
+                            categories=json_dict["diagram"]["categories"] if "categories" in json_dict["diagram"] else [],
+                            data=json_dict["diagram"]["data"] if "data" in json_dict["diagram"] else [],
+                            field=json_dict["diagram"]["field"] if "field" in json_dict["diagram"] else [],
+                            point_format=json_dict["diagram"]["point_format"] if "point_format" in json_dict["diagram"] else [],
                         )
 
                     full_data.append(data)
@@ -246,7 +259,14 @@ class SmartLabAdvancedAPI:
                     name = splitted_texts[-2]
 
                     full_data.append(
-                        FullData(name=name, title=title, categories=[], data=[], field="", point_format="")
+                        FullData(
+                            name=name,
+                            title=title,
+                            categories=[],
+                            data=[],
+                            field="",
+                            point_format="",
+                        )
                     )
 
                     continue
@@ -285,28 +305,38 @@ class SmartLabAdvancedAPI:
                 all_scripts = soup.find_all("script", attrs={"type": "text/javascript"})
 
                 try:
-                    if "dividend" not in str(response['url']):
-                        str_dict = (
-                            str(all_scripts[-2].string)
-                            .split('{point.comment}"},')[0]
-                            .replace("var aYearData = ", "")
-                            .replace("\t", "")
-                            .replace("\n", "")
-                            .replace("'", '"')
-                            + '{point.comment}"}}'
-                        )
+                    if "dividend" not in str(response["url"]):
+                        variables = re.findall("aQuarterData", all_scripts[-2].string)
+
+                        # Если квартер инфа есть
+                        if len(variables) >= 20:
+                            # str_dict = (
+                            #     str(all_scripts[-2].string)
+                            #     .split('{point.comment}"},')[0]
+                            #     .replace("var aYearData = ", "")
+                            #     .replace("\t", "")
+                            #     .replace("\n", "")
+                            #     .replace("'", '"')
+                            #     + '{point.comment}"}}'
+                            # )
+                            str_dict = (
+                                str(all_scripts[-2].string)
+                                .split('var aQuarterData = ')[1]
+                                .split("};")[0]
+                                .replace("\t", "")
+                                .replace("\n", "")
+                                .replace("'", '"') + "}"
+                            )
+                        # Если квартер инфы нет
+                        else:
+                            str_dict = {}
+                            
+                        # print("str_dict:", str_dict)
                     else:
                         variables = re.findall("aQuarterSeries", all_scripts[-2].string)
                         # Если квартер инфы нет
                         if len(variables) == 5:
-                            str_dict = (
-                                str(all_scripts[-2].string)
-                                .split('{point.comment}"},')[0]
-                                .replace("var aYearSeries = ", "")
-                                .replace("\t", "")
-                                .replace("\n", "")
-                                .replace("'", '"').split(";function div")[0]
-                            )
+                            str_dict = {}
                         # Если квартер инфа есть
                         elif len(variables) == 6:
                             str_dict = (
@@ -315,7 +345,8 @@ class SmartLabAdvancedAPI:
                                 .replace("var aYearSeries = ", "")
                                 .replace("\t", "")
                                 .replace("\n", "")
-                                .replace("'", '"').split(";var aQuarterSeries = ")[1]
+                                .replace("'", '"')
+                                .split(";var aQuarterSeries = ")[1]
                                 .split(";function div")[0]
                             )
 
@@ -324,34 +355,34 @@ class SmartLabAdvancedAPI:
                     # print("page:", response["url"])
                     # print("ALL scripts:", all_scripts)
 
-                
                 name = str(response["url"]).split("/")[-2]
 
                 try:
-                    json_dict = json.loads(str_dict)
+                    json_dict = json.loads(str_dict) if str_dict != {} else {}
 
                     tree = fromstring(response["text"])
                     title = tree.findtext(".//title")
+                    # print("name 2:", f"{str_dict}")
 
                     if name == "dividend":
                         data = FullDataDividend(
-                            name=name,
-                            title=title,
-                            categories=json_dict["xaxis"],
-                            dividend=json_dict["dividend"],
-                            div_yield=json_dict["div_yield"],
-                            div_payout_ratio=json_dict["div_payout_ratio"],
-                            dividend_payout=json_dict["dividend_payout"]
+                            name=name if "name" in json_dict else "dividend",
+                            title=title if "title" in json_dict else "Дивиденды недоступны",
+                            categories=json_dict["xaxis"] if "xaxis" in json_dict else [],
+                            dividend=json_dict["dividend"] if "dividend" in json_dict else [],
+                            div_yield=json_dict["div_yield"] if "div_yield" in json_dict else [],
+                            div_payout_ratio=json_dict["div_payout_ratio"] if "div_payout_ratio" in json_dict else [],
+                            dividend_payout=json_dict["dividend_payout"] if "dividend_payout" in json_dict else [],
                         )
 
                     else:
                         data = FullData(
-                            name=name,
-                            title=title,
-                            categories=json_dict["diagram"]["categories"],
-                            data=json_dict["diagram"]["data"],
-                            field=json_dict["diagram"]["field"],
-                            point_format=json_dict["diagram"]["point_format"],
+                            name=name if name is not None else "unknown",
+                            title=title if title is not None else "Что-то пошло не так",
+                            categories=json_dict["diagram"]["categories"] if "categories" in json_dict["diagram"] else [],
+                            data=json_dict["diagram"]["data"] if "data" in json_dict["diagram"] else [],
+                            field=json_dict["diagram"]["field"] if "field" in json_dict["diagram"] else "",
+                            point_format=json_dict["diagram"]["point_format"] if "point_format" in json_dict["diagram"] else "",
                         )
 
                     full_data.append(data)
@@ -364,9 +395,30 @@ class SmartLabAdvancedAPI:
                     splitted_texts = str(response["url"]).split("/")
                     name = splitted_texts[-2]
 
-                    full_data.append(
-                        FullData(name=name, title=title, categories=[], data=[], field="", point_format="")
-                    )
+                    if name == "dividend":
+                        full_data.append(
+                            FullDataDividend(
+                                name=name,
+                                title=title,
+                                categories=[],
+                                dividend=[],
+                                div_yield=[],
+                                div_payout_ratio=[],
+                                dividend_payout=[],
+                            )
+                        )
+
+                    else:
+                        full_data.append(
+                            FullData(
+                                name=name,
+                                title=title,
+                                categories=[],
+                                data=[],
+                                field="",
+                                point_format="",
+                            )
+                        )
                     continue
 
             # print("Length of all links:", len(full_info))
