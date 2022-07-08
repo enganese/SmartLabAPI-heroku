@@ -26,11 +26,11 @@ class FullData:
 class FullDataDividend:
     name: str | None
     title: str | None
-    categories: List[int] | List[str] | list
-    dividend: list
-    div_yield: list
-    div_payout_ratio: list
-    dividend_payout: list
+    categories: List[int] | List[str] | list | None
+    dividend: Optional[list] | None
+    div_yield: Optional[list] | None
+    div_payout_ratio: Optional[list] | None
+    dividend_payout: Optional[list] | None
 
 
 @dataclass
