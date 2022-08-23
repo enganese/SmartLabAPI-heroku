@@ -472,6 +472,15 @@ class SmartLabAPI:
     def __init__(self):
         self.ticker = None
         self.parser = None
+    
+
+    def __repr__(self):
+        return "<class '{}' id:{}>".format(self.__class__.__name__, id(self.__class__))
+
+    
+    def __str__(self):
+        return "SmartLabAPI by 'enganese' => https://t.me/enganese"
+
 
     def get_years(self) -> List[str]:
         """
@@ -483,18 +492,17 @@ class SmartLabAPI:
 
             soup = self.parser
 
-            rows = soup.select("tr:has(td, th)")
+            rows = soup.find("tr", attrs={"field": "date"})  # .select("tr:has(td, th)")
+            rows = rows.find_all("td")[1:]
 
-            td_rows = rows[2].find_all("td")
+            # print(f"'{str(rows[0].get_text()).strip()}'", "\n\n\n")
 
-            for td in td_rows:
-                if "\xa0" in td:
-                    td_rows.remove(td)
+            rows = [td for td in rows if "\xa0" not in td]
 
-            for td in td_rows:
+            for td in rows:
                 text = Tools.normalize_text(td.get_text())
-
-                years.append(text.split()[0])
+                text = text.split()[0].strip().split(".")[-1]
+                years.append(text)
 
             return years
 
@@ -1728,8 +1736,9 @@ class SmartLabAPI:
 
         # Initialize the BeautifulSoup object
         try:
-            print("INFO:", "Using lxml for parsing")
+            import lxml
             self.parser = BeautifulSoup(requests.get(url).text, "lxml")
+            print("INFO:", "Using lxml for parsing")
 
         except ImportError as e:
             print("WARNING: Using html.parser instead")
