@@ -1777,7 +1777,7 @@ class SmartLabAPI:
         soup = self.parser
 
         # Get years with quarters
-        if period in ["quarter", "q", "qurater"]: get_years_q()
+        if period in ["quarter", "q", "qurater"]: years = self.get_years_q()
         
         # Get years only
         if period in ["year", "y", "yaer"]: years = self.get_years()
