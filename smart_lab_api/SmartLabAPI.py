@@ -530,7 +530,7 @@ class SmartLabAPI:
 
             for td in rows:
                 text = Tools.normalize_text(td.get_text())
-                text = text.split()[0].strip().split(".")[-1]
+                text = text.split()[0].strip()  # .split(".")[-1]
                 years.append(text)
 
             return years
