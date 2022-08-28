@@ -481,6 +481,35 @@ class SmartLabAPI:
     def __str__(self):
         return "SmartLabAPI by 'enganese' => https://t.me/enganese"
 
+    
+    def get_years_q(self) -> List[str]:
+        """
+        Get years from the table
+        """
+
+        try:
+            years = []
+
+            soup = self.parser
+
+            rows = soup.select("tr:has(td, th)")
+
+            td_rows = rows[2].find_all("td")
+
+            for td in td_rows:
+                if "\xa0" in td:
+                    td_rows.remove(td)
+
+            for td in td_rows:
+                text = Tools.normalize_text(td.get_text())
+
+                years.append(text.split()[0])
+
+            return years
+
+        except Exception as e:
+            return []
+
 
     def get_years(self) -> List[str]:
         """
@@ -1716,7 +1745,7 @@ class SmartLabAPI:
             "qurater",
         ]:
             print(
-                "Unexpected object was passed as a 'period', 'year' or 'quarter' must be passed instead. \nNeed a help? More: https://en.wikipedia.org/wiki/Calendar_year"
+                "Unexpected string was passed as a 'period'. 'year' or 'quarter' must be passed instead. \nNeed a help? More: https://en.wikipedia.org/wiki/Calendar_year"
             )
             return None
 
@@ -1747,8 +1776,11 @@ class SmartLabAPI:
         # Assign the instant to a variable
         soup = self.parser
 
-        # Get years
-        years = self.get_years()
+        # Get years with quarters
+        if period in ["quarter", "q", "qurater"]: get_years_q()
+        
+        # Get years only
+        if period in ["year", "y", "yaer"]: years = self.get_years()
 
         # Get currency
         currency = self.get_currency()

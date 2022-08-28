@@ -25,7 +25,7 @@ def custom_openapi():
     openapi_schema = get_openapi(
         title="Smart-Lab API",
         version="1.1.0",
-        description="SmartLab API powered by FastAPI. \n\nIt's not official, but it's working.",
+        description="SmartLab API powered by FastAPI. \n\nIt's not official, but it works.",
         routes=app.routes,
     )
     openapi_schema["info"]["x-logo"] = {
