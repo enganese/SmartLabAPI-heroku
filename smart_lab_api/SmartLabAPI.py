@@ -2049,8 +2049,8 @@ class SmartLabAPI:
                 for_graph=share_holders[0]["for_graph"],
                 data=share_holders[0]["data"],
                 aliases=[
-                    "Держатель акции",
                     "Структура и состав акционеров",
+                    "Держатель акции",
                     "Share holder",
                 ],
             ),
