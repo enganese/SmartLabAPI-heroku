@@ -5,6 +5,7 @@ import re
 from smart_lab_api import SmartLabAPI, dataclass_types
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
+from dohod_api.client import AsyncClient as dohod_api
 
 
 app = fastapi.FastAPI()
@@ -135,6 +136,30 @@ async def custom_500_handler(_, __):
     return resp
 
 
+@app.get("/ik/analytics/dividend")
+async def get_dividend(limit: int = 25):
+    try:
+        async with dohod_api() as api:
+            list_of_dividend = await api.get_data_in_dict(limit=limit)
+
+        print(list_of_dividend)
+
+        return JSONResponse(
+            content={"ok": True, "data": list_of_dividend},
+            media_type="application/json",
+            status_code=200,
+        )
+    except Exception as e:
+        return JSONResponse(
+            content={
+                "ok": False,
+                "message": "Something went wrong on server's side. Please, try again later.",
+            },
+            media_type="application/json",
+            status_code=400,
+        )
+
+
 @app.get("/{ticker}/{period}")
 async def get_info_about_company(
     period: str = None,
@@ -246,7 +271,7 @@ async def get_companies():
         return JSONResponse(
             content={
                 "ok": False,
-                "message": "If function returned absolutely empty list, then it means that there is no data or something went wrong on server's side. Please, try again later.",
+                "message": "Something went wrong on server's side. Please, try again later.",
             },
             media_type="application/json",
             status_code=400,
