@@ -137,18 +137,21 @@ async def custom_500_handler(_, __):
 
 
 @app.get("/ik/analytics/dividend")
-async def get_dividend(limit: int = 25):
+async def get_dividend(limit: int = 25, direct_info: bool = False):
     try:
         async with dohod_api() as api:
             list_of_dividend = await api.get_data_in_dict(limit=limit)
 
         print(list_of_dividend)
 
-        return JSONResponse(
-            content={"ok": True, "data": list_of_dividend},
-            media_type="application/json",
-            status_code=200,
-        )
+        if direct_info:
+            return list_of_dividend
+        else:
+            return JSONResponse(
+                content={"ok": True, "data": list_of_dividend},
+                media_type="application/json",
+                status_code=200,
+            )
     except Exception as e:
         return JSONResponse(
             content={
