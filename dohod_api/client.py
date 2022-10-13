@@ -87,7 +87,7 @@ class AsyncClient:
                     dict_share["payout"] = self.normalize_text(td.get_text())
                 if index == 4:
                     check_mark_one = td.find("span")
-                    dict_share["check_mark_one"] = '<span data-toggle="tooltip" data-placement="top" title="Размер дивиденда рекомендован советом директоров"><img src="https://www.dohod.ru/images/icons-16x16/sign_tick2.png"></span>' if check_mark_one else ''
+                    dict_share["check_mark_one"] = '<span data-bs-toggle="tooltip" data-bs-placement="top" data-bs-container="body" title="" data-bs-original-title="Размер дивиденда рекомендован советом директоров" aria-label="Размер дивиденда рекомендован советом директоров"><img src="https://www.dohod.ru/images/icons-16x16/sign_tick2.png"></span>' if check_mark_one else ''
                 if index == 5:
                     dict_share["currency"] = self.normalize_text(td.get_text())
                 if index == 6:
@@ -100,7 +100,7 @@ class AsyncClient:
                     )
                 if index == 9:
                     check_mark_two = td.find("span")
-                    dict_share["check_mark_two"] = '<span data-toggle="tooltip" data-placement="top" title="Дата закрытия реестра под выплату дивидендов рекомендована советом директоров"><img src="https://www.dohod.ru/images/icons-16x16/sign_tick.png"></span>' if check_mark_two else ''
+                    dict_share["check_mark_two"] = '<span data-bs-toggle="tooltip" data-bs-placement="top" data-bs-container="body" title="" data-bs-original-title="Дата закрытия реестра под выплату дивидендов рекомендована советом директоров" aria-label="Дата закрытия реестра под выплату дивидендов рекомендована советом директоров"><img src="https://www.dohod.ru/images/icons-16x16/sign_tick.png"></span>' if check_mark_two else ''
                 if index == 10:
                     dict_share["capitalization"] = self.normalize_text(td.get_text())
                 if index == 11:
@@ -152,7 +152,7 @@ class AsyncClient:
                         dict_share["payout"] = self.normalize_text(td.get_text())
                     if index == 4:
                         check_mark_one = td.find("span")
-                        dict_share["check_mark_one"] = '<span data-toggle="tooltip" data-placement="top" title="Размер дивиденда рекомендован советом директоров"><img src="https://www.dohod.ru/images/icons-16x16/sign_tick2.png"></span>' if check_mark_one else ''
+                        dict_share["check_mark_one"] = '<span data-bs-toggle="tooltip" data-bs-placement="top" data-bs-container="body" title="" data-bs-original-title="Размер дивиденда рекомендован советом директоров" aria-label="Размер дивиденда рекомендован советом директоров"><img src="https://www.dohod.ru/images/icons-16x16/sign_tick2.png"></span>' if check_mark_one else ''
                     if index == 5:
                         dict_share["currency"] = self.normalize_text(td.get_text())
                     if index == 6:
@@ -165,7 +165,7 @@ class AsyncClient:
                         )
                     if index == 9:
                         check_mark_two = td.find("span")
-                        dict_share["check_mark_two"] = '<span data-toggle="tooltip" data-placement="top" title="Дата закрытия реестра под выплату дивидендов рекомендована советом директоров"><img src="https://www.dohod.ru/images/icons-16x16/sign_tick.png"></span>' if check_mark_two else ''
+                        dict_share["check_mark_two"] = '<span data-bs-toggle="tooltip" data-bs-placement="top" data-bs-container="body" title="" data-bs-original-title="Дата закрытия реестра под выплату дивидендов рекомендована советом директоров" aria-label="Дата закрытия реестра под выплату дивидендов рекомендована советом директоров"><img src="https://www.dohod.ru/images/icons-16x16/sign_tick.png"></span>' if check_mark_two else ''
                     if index == 10:
                         dict_share["capitalization"] = self.normalize_text(td.get_text()).replace(" ", "")
                     if index == 11:
