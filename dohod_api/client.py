@@ -167,7 +167,7 @@ class AsyncClient:
                         check_mark_two = td.find("span")
                         dict_share["check_mark_two"] = '<span data-toggle="tooltip" data-placement="top" title="Дата закрытия реестра под выплату дивидендов рекомендована советом директоров"><img src="https://www.dohod.ru/images/icons-16x16/sign_tick.png"></span>' if check_mark_two else ''
                     if index == 10:
-                        dict_share["capitalization"] = self.normalize_text(td.get_text())
+                        dict_share["capitalization"] = self.normalize_text(td.get_text()).replace(" ", "")
                     if index == 11:
                         dict_share["dsi"] = self.normalize_text(td.get_text())
                         dict_share["details"]['dsi'] = self.normalize_text(td.get_text()) # Detail: DSI
