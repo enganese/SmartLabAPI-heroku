@@ -122,10 +122,12 @@ class AsyncClient:
                     dict_share['details']['total_amount_allocated_for_dividends'] = f"{self.normalize_text(td.get_text())} млн. руб." # Detail: Общая сумма направляемая на дивиденды
                 if index == 19:
                         dict_share['details']['last_date_before_closing_registry'] = self.normalize_text(td.get_text()) # Последняя дата торгов перед закрытием реестра (оценка)
+                if index == 21:
+                    dict_share['capitalization_size'] = self.normalize_text(td.get_text()) # Размер капитализаций (Small, Medium, Large)
                 if index == 22:
-                    dict_share['full_year'] = self.normalize_text(td.get_text()) # Последняя дата торгов перед закрытием реестра (оценка)
+                    dict_share['full_year'] = self.normalize_text(td.get_text()) # Совокупные дивиденды?
                 if index == 23:
-                    dict_share['recommended'] = self.normalize_text(td.get_text()) # Последняя дата торгов перед закрытием реестра (оценка)
+                    dict_share['recommended'] = self.normalize_text(td.get_text()) # Рекомендованы? 2 галочки есть?
                 # TO DO: add 23rd(22) and 24th(23) table columns into json
 
             shares.append(Share(**dict_share))
@@ -193,10 +195,12 @@ class AsyncClient:
                         dict_share['details']['total_amount_allocated_for_dividends'] = f"{self.normalize_text(td.get_text())} млн. руб." # Detail: Общая сумма направляемая на дивиденды
                     if index == 19:
                         dict_share['details']['last_date_before_closing_registry'] = self.normalize_text(td.get_text()) # Последняя дата торгов перед закрытием реестра (оценка)
+                    if index == 21:
+                        dict_share['capitalization_size'] = self.normalize_text(td.get_text()) # Размер капитализаций (Small, Medium, Large)
                     if index == 22:
-                        dict_share['full_year'] = self.normalize_text(td.get_text()) # Последняя дата торгов перед закрытием реестра (оценка)
+                        dict_share['full_year'] = self.normalize_text(td.get_text()) # Совокупные дивиденды?
                     if index == 23:
-                        dict_share['recommended'] = self.normalize_text(td.get_text()) # Последняя дата торгов перед закрытием реестра (оценка)
+                        dict_share['recommended'] = self.normalize_text(td.get_text()) # Рекомендованы? 2 галочки есть?
 
                 dict_shares.append(dict_share)
 
