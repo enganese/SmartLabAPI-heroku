@@ -13,3 +13,4 @@ smart_lab_api/__pycache__/dataclass_types.cpython-310.pyc
 *.pyc
 smart_lab_api/__pycache__/dataclass_types.cpython-310.pyc
 smart_lab_api/example.py
+test.py
