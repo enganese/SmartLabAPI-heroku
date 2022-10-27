@@ -48,4 +48,6 @@ class Share:
     check_mark_two: Union[bool] | None
     capitalization: Union[str, int, float] | None
     dsi: Union[str, int, float] | None
-    details: list[Detail]
+    details: list[Detail] | None
+    full_year: Union[str, int, float] | None
+    recommended: Union[str, int, float] | None

@@ -2,7 +2,7 @@
 import aiohttp, requests
 from dataclasses import dataclass
 from bs4 import BeautifulSoup
-from .share import Share
+from share import Share
 
 from types import SimpleNamespace, TracebackType
 from typing import (
@@ -122,6 +122,11 @@ class AsyncClient:
                     dict_share['details']['total_amount_allocated_for_dividends'] = f"{self.normalize_text(td.get_text())} млн. руб." # Detail: Общая сумма направляемая на дивиденды
                 if index == 19:
                         dict_share['details']['last_date_before_closing_registry'] = self.normalize_text(td.get_text()) # Последняя дата торгов перед закрытием реестра (оценка)
+                if index == 22:
+                    dict_share['full_year'] = self.normalize_text(td.get_text()) # Последняя дата торгов перед закрытием реестра (оценка)
+                if index == 23:
+                    dict_share['recommended'] = self.normalize_text(td.get_text()) # Последняя дата торгов перед закрытием реестра (оценка)
+                # TO DO: add 23rd(22) and 24th(23) table columns into json
 
             shares.append(Share(**dict_share))
 
@@ -142,6 +147,7 @@ class AsyncClient:
                 # all_td = all_td[:11]
 
                 for index, td in enumerate(all_td):
+                    # print(f"{index} td:", td)
                     if index == 0:
                         dict_share["name"] = self.normalize_text(td.get_text())
                     if index == 1:
@@ -187,6 +193,10 @@ class AsyncClient:
                         dict_share['details']['total_amount_allocated_for_dividends'] = f"{self.normalize_text(td.get_text())} млн. руб." # Detail: Общая сумма направляемая на дивиденды
                     if index == 19:
                         dict_share['details']['last_date_before_closing_registry'] = self.normalize_text(td.get_text()) # Последняя дата торгов перед закрытием реестра (оценка)
+                    if index == 22:
+                        dict_share['full_year'] = self.normalize_text(td.get_text()) # Последняя дата торгов перед закрытием реестра (оценка)
+                    if index == 23:
+                        dict_share['recommended'] = self.normalize_text(td.get_text()) # Последняя дата торгов перед закрытием реестра (оценка)
 
                 dict_shares.append(dict_share)
 
@@ -198,11 +208,23 @@ class AsyncClient:
 
 # async def main():
 #     async with AsyncClient() as client:
-#         data = await client.get_data_in_dict()
+#         data = await client.get_data_in_dataclasses()
 #     return data
 
 
 # import asyncio, pprint
 
 # data = asyncio.run(main())
-# pprint.pprint(data, indent=4)
+
+# full_year_data = []
+# for d in data:
+#     if isinstance(d, Share) and d.full_year == "1":
+#         full_year_data.append(d)
+#         print(d)
+    
+#     elif not isinstance(d, Share) and d['full_year'] == "1":
+#         full_year_data.append(d)
+#         pprint.pprint(d, indent=4)
+
+
+# print("Companies with full year report:", len(full_year_data))
