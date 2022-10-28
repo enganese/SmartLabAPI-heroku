@@ -50,6 +50,7 @@ class Share:
     dsi: Union[str, int, float] | None
     details: list[Detail] | None
     company_ticker: Union[str, int, float] | None
+    url: Union[str, int, float] | None
     capitalization_size: Union[str, int, float] | None
     full_year: Union[str] | None
     recommended: Union[str, int, float] | None
