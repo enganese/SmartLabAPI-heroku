@@ -2,7 +2,7 @@
 import aiohttp, requests
 from dataclasses import dataclass
 from bs4 import BeautifulSoup
-from .share import Share
+from share import Share
 
 from types import SimpleNamespace, TracebackType
 from typing import (
@@ -121,7 +121,9 @@ class AsyncClient:
                 if index == 18:
                     dict_share['details']['total_amount_allocated_for_dividends'] = f"{self.normalize_text(td.get_text())} млн. руб." # Detail: Общая сумма направляемая на дивиденды
                 if index == 19:
-                        dict_share['details']['last_date_before_closing_registry'] = self.normalize_text(td.get_text()) # Последняя дата торгов перед закрытием реестра (оценка)
+                    dict_share['details']['last_date_before_closing_registry'] = self.normalize_text(td.get_text()) # Последняя дата торгов перед закрытием реестра (оценка)
+                if index == 20:
+                    dict_share['company_ticker'] = self.normalize_text(td.get_text()) # Тикер компании
                 if index == 21:
                     dict_share['capitalization_size'] = self.normalize_text(td.get_text()) # Размер капитализаций (Small, Medium, Large)
                 if index == 22:
@@ -195,6 +197,8 @@ class AsyncClient:
                         dict_share['details']['total_amount_allocated_for_dividends'] = f"{self.normalize_text(td.get_text())} млн. руб." # Detail: Общая сумма направляемая на дивиденды
                     if index == 19:
                         dict_share['details']['last_date_before_closing_registry'] = self.normalize_text(td.get_text()) # Последняя дата торгов перед закрытием реестра (оценка)
+                    if index == 20:
+                        dict_share['company_ticker'] = self.normalize_text(td.get_text()) # Тикер компании
                     if index == 21:
                         dict_share['capitalization_size'] = self.normalize_text(td.get_text()) # Размер капитализаций (Small, Medium, Large)
                     if index == 22:
@@ -209,10 +213,18 @@ class AsyncClient:
             print("ERROR AT 195:", e)
             return []
 
+    async def get_company_html_page(self, company_ticker: str = "lkoh"):
+        html = None
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f'https://www.dohod.ru/ik/analytics/dividend/{company_ticker}') as resp:
+                html = await resp.text()
+
+        self.soup = BeautifulSoup(html, "lxml")
+        ...
 
 # async def main():
 #     async with AsyncClient() as client:
-#         data = await client.get_data_in_dataclasses()
+#         data = await client.get_data_in_dict()
 #     return data
 
 
@@ -222,13 +234,14 @@ class AsyncClient:
 
 # full_year_data = []
 # for d in data:
-#     if isinstance(d, Share) and d.full_year == "1":
-#         full_year_data.append(d)
+#     if isinstance(d, Share):
+#         # full_year_data.append(d)
 #         print(d)
     
-#     elif not isinstance(d, Share) and d['full_year'] == "1":
-#         full_year_data.append(d)
+#     elif not isinstance(d, Share):
+#         # full_year_data.append(d)
 #         pprint.pprint(d, indent=4)
+#         break
 
 
 # print("Companies with full year report:", len(full_year_data))

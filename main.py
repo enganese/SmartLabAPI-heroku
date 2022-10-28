@@ -142,7 +142,7 @@ async def get_dividend(limit: int = 25, direct_info: bool = False):
         async with dohod_api() as api:
             list_of_dividend = await api.get_data_in_dict(limit=limit)
 
-        print(list_of_dividend)
+        # print(list_of_dividend)
 
         if direct_info:
             return list_of_dividend
