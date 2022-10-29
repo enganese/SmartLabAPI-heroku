@@ -212,7 +212,7 @@ class AsyncClient:
                         else:
                             dict_share['company_ticker'] = self.normalize_text(td.get_text()) # Тикер компании
                             dict_share['url'] = f"https://www.dohod.ru/ik/analytics/dividend/{self.normalize_text(td.get_text())}" # URL of company's dividend info page
-                            dict_share['html_tag'] = dict_share['name'] # Not clickable text if there is no full info on company's dividends
+                            dict_share['html_tag'] = f"<a href='#popup:embedcode2'>{dict_share['name']}</a>" # dict_share['name'] # Not clickable text if there is no full info on company's dividends
                     if index == 21:
                         dict_share['capitalization_size'] = self.normalize_text(td.get_text()) # Размер капитализаций (Small, Medium, Large)
                     if index == 22:
