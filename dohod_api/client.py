@@ -124,13 +124,13 @@ class AsyncClient:
                     dict_share['details']['last_date_before_closing_registry'] = self.normalize_text(td.get_text()) # Последняя дата торгов перед закрытием реестра (оценка)
                 if index == 20:
                     if self.normalize_text(td.get_text()) != "XXXX":
-                            dict_share['company_ticker'] = self.normalize_text(td.get_text()) # Тикер компании
-                            dict_share['url'] = f"https://www.dohod.ru/ik/analytics/dividend/{self.normalize_text(td.get_text())}" # URL of company's dividend info page
-                            dict_share['html_tag'] = f"<a href='https://www.dohod.ru/ik/analytics/dividend/{self.normalize_text(td.get_text())}'>{dict_share['name']}</a>" # HTML Tag: <a> to show and make the name clickable in table
+                        dict_share['company_ticker'] = self.normalize_text(td.get_text()) # Тикер компании
+                        dict_share['url'] = f"https://www.dohod.ru/ik/analytics/dividend/{self.normalize_text(td.get_text())}" # URL of company's dividend info page
+                        dict_share['html_tag'] = f"<a href='https://www.dohod.ru/ik/analytics/dividend/{self.normalize_text(td.get_text())}'>{dict_share['name']}</a>" # HTML Tag: <a> to show and make the name clickable in table
                     else:
                         dict_share['company_ticker'] = self.normalize_text(td.get_text()) # Тикер компании
                         dict_share['url'] = f"https://www.dohod.ru/ik/analytics/dividend/{self.normalize_text(td.get_text())}" # URL of company's dividend info page
-                        dict_share['html_tag'] = {dict_share['name']} # Not clickable text if there is no full info on company's dividends
+                        dict_share['html_tag'] = dict_share['name'] # Not clickable text if there is no full info on company's dividends
                 if index == 21:
                     dict_share['capitalization_size'] = self.normalize_text(td.get_text()) # Размер капитализаций (Small, Medium, Large)
                 if index == 22:
@@ -212,7 +212,7 @@ class AsyncClient:
                         else:
                             dict_share['company_ticker'] = self.normalize_text(td.get_text()) # Тикер компании
                             dict_share['url'] = f"https://www.dohod.ru/ik/analytics/dividend/{self.normalize_text(td.get_text())}" # URL of company's dividend info page
-                            dict_share['html_tag'] = {dict_share['name']} # Not clickable text if there is no full info on company's dividends
+                            dict_share['html_tag'] = dict_share['name'] # Not clickable text if there is no full info on company's dividends
                     if index == 21:
                         dict_share['capitalization_size'] = self.normalize_text(td.get_text()) # Размер капитализаций (Small, Medium, Large)
                     if index == 22:
