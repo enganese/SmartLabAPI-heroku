@@ -227,18 +227,24 @@ class AsyncClient:
             print("ERROR AT 195:", e)
             return []
 
-    async def get_company_html_page(self, company_ticker: str = "lkoh"):
-        html = None
-        async with aiohttp.ClientSession() as session:
-            async with session.get(f'https://www.dohod.ru/ik/analytics/dividend/{company_ticker}') as resp:
-                html = await resp.text()
+    async def get_company_html_page(self, company_ticker: str = "lkoh") -> str:
+        try:
+            html = None
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f'https://www.dohod.ru/ik/analytics/dividend/{company_ticker}') as resp:
+                    html = await resp.text()
 
-        soup = BeautifulSoup(html, "lxml")
-        div = soup.find("div", attrs={"class": "main_content"})
-        div2 = div.find("div", attrs={"id": "prevention"}).decompose()
-        div3 = div.find("div", attrs={"class": "clear"}).decompose()
-        br = div.find_all("br")[-1].decompose()
-        return str(div).replace("n/a", "Недоступно").replace("/images", "https://dohod.ru/images").replace("/ik", "https://dohod.ru/ik")
+            soup = BeautifulSoup(html, "lxml")
+            div = soup.find("div", attrs={"class": "main_content"})
+            div2 = div.find("div", attrs={"id": "prevention"}).decompose()
+            div3 = div.find("div", attrs={"class": "clear"}).decompose()
+            br = div.find_all("br")[-1].decompose()
+            div = re.sub('>\s+\<', "><", str(div))
+
+            return div.replace("n/a", "Недоступно").replace("/images", "https://dohod.ru/images").replace("/ik", "https://dohod.ru/ik")
+        except Exception as e:
+            print(e)
+            return None
 
 
 # async def main():
