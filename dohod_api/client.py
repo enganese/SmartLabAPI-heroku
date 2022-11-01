@@ -241,7 +241,7 @@ class AsyncClient:
             br = div.find_all("br")[-1].decompose()
             div = re.sub('>\s+\<', "><", str(div))
 
-            return div.replace("n/a", "Недоступно").replace("/images", "https://dohod.ru/images").replace("/ik", "https://dohod.ru/ik")
+            return div.replace("n/a", "Недоступно").replace("/images", "https://dohod.ru/images").replace("/ik", "https://dohod.ru/ik").replace('"', "'").replace("\n", "").replace("\t", "")
         except Exception as e:
             print(e)
             return None
