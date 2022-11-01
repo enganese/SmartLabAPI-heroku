@@ -233,19 +233,24 @@ class AsyncClient:
             async with session.get(f'https://www.dohod.ru/ik/analytics/dividend/{company_ticker}') as resp:
                 html = await resp.text()
 
-        self.soup = BeautifulSoup(html, "lxml")
-        ...
+        soup = BeautifulSoup(html, "lxml")
+        div = soup.find("div", attrs={"class": "main_content"})
+        div2 = div.find("div", attrs={"id": "prevention"}).decompose()
+        div3 = div.find("div", attrs={"class": "clear"}).decompose()
+        br = div.find_all("br")[-1].decompose()
+        return str(div).replace("n/a", "Недоступно").replace("/images", "https://dohod.ru/images").replace("/ik", "https://dohod.ru/ik")
+
 
 # async def main():
 #     async with AsyncClient() as client:
-#         data = await client.get_data_in_dict()
+#         data = await client.get_company_html_page()
 #     return data
 
 
 # import asyncio, pprint
 
 # data = asyncio.run(main())
-
+# print(data)
 # full_year_data = []
 # for d in data:
 #     if isinstance(d, Share):

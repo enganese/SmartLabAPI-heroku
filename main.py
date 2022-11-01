@@ -136,6 +136,21 @@ async def custom_500_handler(_, __):
     return resp
 
 
+@app.get("/ik/analytics/dividend/{ticker}")
+async def get_html_page(ticker: str, direct_info: bool = False):
+    html = None
+    async with dohod_api() as api:
+        html = await api.get_company_html_page(ticker)
+    
+    if direct_info:
+        return html
+    
+    return JSONResponse(
+        content={"ok": True, "data": html},
+        media_type="application/json",
+        status_code=200,
+    )
+
 @app.get("/ik/analytics/dividend")
 async def get_dividend(limit: int = 25, direct_info: bool = False):
     try:
