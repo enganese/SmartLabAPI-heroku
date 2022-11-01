@@ -143,8 +143,8 @@ async def get_html_page(ticker: str, direct_info: bool = False):
         html = await api.get_company_html_page(ticker)
     
     if direct_info:
-        return html
-    
+        return html.replace('"', "'")
+
     return JSONResponse(
         content={"ok": True, "data": html},
         media_type="application/json",
