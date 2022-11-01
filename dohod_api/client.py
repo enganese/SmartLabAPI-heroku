@@ -1,8 +1,8 @@
 # async_dohod_api.py
-import aiohttp, requests, json
+import aiohttp, requests, json5, re
 from dataclasses import dataclass
 from bs4 import BeautifulSoup
-from .share import Share
+from share import Share
 
 from types import SimpleNamespace, TracebackType
 from typing import (
@@ -254,22 +254,26 @@ class AsyncClient:
                 async with session.get(f'https://www.dohod.ru/ik/analytics/dividend/{company_ticker}/chart-data.js') as resp:
                     chart_data = await resp.text()
 
-            return json.loads(str(chart_data).replace("var chart_data = ", "").replace(";", ""))
+            chart_data = str(chart_data).replace("var data = ", "").replace(";", "").replace("'", '"')
+            chart_data = json5.loads(chart_data)
+
+            return chart_data
         except Exception as e:
             print(e)
             return None
 
 
-# async def main():
-#     async with AsyncClient() as client:
-#         data = await client.get_company_html_page()
-#     return data
+async def main():
+    async with AsyncClient() as client:
+        data = await client.get_company_chart_data()
+    return data
 
 
-# import asyncio, pprint
+import asyncio, pprint
 
-# data = asyncio.run(main())
+data = asyncio.run(main())
 # print(data)
+
 # full_year_data = []
 # for d in data:
 #     if isinstance(d, Share):
