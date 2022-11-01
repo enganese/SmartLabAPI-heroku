@@ -156,7 +156,7 @@ async def get_html_page(ticker: str, direct_info: bool = False):
 async def get_html_page(ticker: str, direct_info: bool = False):
     chart_data = None
     async with dohod_api() as api:
-        html = await api.get_company_chart_data(ticker)
+        chart_data = await api.get_company_chart_data(ticker)
     
     if direct_info:
         return chart_data
