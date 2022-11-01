@@ -1,5 +1,5 @@
 # async_dohod_api.py
-import aiohttp, requests
+import aiohttp, requests, json
 from dataclasses import dataclass
 from bs4 import BeautifulSoup
 from .share import Share
@@ -242,6 +242,19 @@ class AsyncClient:
             div = re.sub('>\s+\<', "><", str(div))
 
             return div.replace("n/a", "Недоступно").replace("/images", "https://dohod.ru/images").replace("/ik", "https://dohod.ru/ik").replace('"', "'").replace("\n", "").replace("\t", "")
+        except Exception as e:
+            print(e)
+            return None
+    
+
+    async def get_company_chart_data(self, company_ticker: str = "lkoh") -> str:
+        try:
+            chart_data = None
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f'https://www.dohod.ru/ik/analytics/dividend/{company_ticker}/chart-data.js') as resp:
+                    chart_data = await resp.text()
+
+            return json.loads(str(chart_data).replace("var chart_data = ", "").replace(";", ""))
         except Exception as e:
             print(e)
             return None

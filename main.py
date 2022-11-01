@@ -1,7 +1,7 @@
 import fastapi, uvicorn, aiohttp, bs4
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, RedirectResponse
-import re
+import re, json
 from smart_lab_api import SmartLabAPI, dataclass_types
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
@@ -150,6 +150,23 @@ async def get_html_page(ticker: str, direct_info: bool = False):
         media_type="application/json",
         status_code=200,
     )
+
+
+@app.get("/ik/analytics/dividend/{ticker}/chart-data")
+async def get_html_page(ticker: str, direct_info: bool = False):
+    chart_data = None
+    async with dohod_api() as api:
+        html = await api.get_company_chart_data(ticker)
+    
+    if direct_info:
+        return chart_data
+
+    return JSONResponse(
+        content={"ok": True, "data": chart_data},
+        media_type="application/json",
+        status_code=200,
+    )
+
 
 @app.get("/ik/analytics/dividend")
 async def get_dividend(limit: int = 25, direct_info: bool = False):
