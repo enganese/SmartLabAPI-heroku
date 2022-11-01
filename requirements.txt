@@ -9,3 +9,4 @@ lxml
 gevent
 aiodns
 cchardet
+json5

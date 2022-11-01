@@ -2,7 +2,7 @@
 import aiohttp, requests, json5, re
 from dataclasses import dataclass
 from bs4 import BeautifulSoup
-from share import Share
+from .share import Share
 
 from types import SimpleNamespace, TracebackType
 from typing import (
