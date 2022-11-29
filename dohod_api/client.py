@@ -3,6 +3,7 @@ import aiohttp, requests, json5, re
 from dataclasses import dataclass
 from bs4 import BeautifulSoup
 from .share import Share
+from b
 
 from types import SimpleNamespace, TracebackType
 from typing import (
@@ -125,11 +126,11 @@ class AsyncClient:
                 if index == 20:
                     if self.normalize_text(td.get_text()) != "XXXX":
                         dict_share['company_ticker'] = self.normalize_text(td.get_text()) # Тикер компании
-                        dict_share['url'] = f"https://www.dohod.ru/ik/analytics/dividend/{self.normalize_text(td.get_text())}" # URL of company's dividend info page
-                        dict_share['html_tag'] = f"<a href='https://www.dohod.ru/ik/analytics/dividend/{self.normalize_text(td.get_text())}'>{dict_share['name']}</a>" # HTML Tag: <a> to show and make the name clickable in table
+                        dict_share['url'] = f"https://treeinvest.ru/companies/?ticker={self.normalize_text(td.get_text())}" # URL of company's dividend info page
+                        dict_share['html_tag'] = f"<a href='https://treeinvest.ru/companies/?ticker={self.normalize_text(td.get_text())}'>{dict_share['name']}</a>" # HTML Tag: <a> to show and make the name clickable in table
                     else:
                         dict_share['company_ticker'] = self.normalize_text(td.get_text()) # Тикер компании
-                        dict_share['url'] = f"https://www.dohod.ru/ik/analytics/dividend/{self.normalize_text(td.get_text())}" # URL of company's dividend info page
+                        dict_share['url'] = f"https://treeinvest.ru/companies/?ticker={self.normalize_text(td.get_text())}" # URL of company's dividend info page
                         dict_share['html_tag'] = dict_share['name'] # Not clickable text if there is no full info on company's dividends
                 if index == 21:
                     dict_share['capitalization_size'] = self.normalize_text(td.get_text()) # Размер капитализаций (Small, Medium, Large)
